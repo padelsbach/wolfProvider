@@ -27,7 +27,7 @@ WOLFSSL_SOURCE_DIR=${SCRIPT_DIR}/../wolfssl-source
 WOLFSSL_INSTALL_DIR=${SCRIPT_DIR}/../wolfssl-install
 WOLFSSL_ISFIPS=${WOLFSSL_ISFIPS:-0}
 WOLFSSL_CONFIG_OPTS=${WOLFSSL_CONFIG_OPTS:-'--enable-all-crypto --with-eccminsz=192 --with-max-ecc-bits=1024 --enable-opensslcoexist --enable-sha'}
-WOLFSSL_CONFIG_CFLAGS=${WOLFSSL_CONFIG_CFLAGS:-"-I${OPENSSL_INSTALL_DIR}/include -DWC_RSA_NO_PADDING -DWOLFSSL_PUBLIC_MP -DHAVE_PUBLIC_FFDHE -DHAVE_FFDHE_6144 -DHAVE_FFDHE_8192 -DWOLFSSL_PSS_LONG_SALT -DWOLFSSL_PSS_SALT_LEN_DISCOVER -DRSA_MIN_SIZE=1024"}
+WOLFSSL_CONFIG_CFLAGS=${WOLFSSL_CONFIG_CFLAGS:-"-I${OPENSSL_INSTALL_DIR}/include -DWC_RSA_NO_PADDING -DWOLFSSL_PUBLIC_MP -DHAVE_PUBLIC_FFDHE -DHAVE_FFDHE_6144 -DHAVE_FFDHE_8192 -DWOLFSSL_PSS_LONG_SALT -DWOLFSSL_PSS_SALT_LEN_DISCOVER -DRSA_MIN_SIZE=1024 -DWOLFSSL_OLD_OID_SUM"}
 
 WOLFPROV_DEBUG=${WOLFPROV_DEBUG:-0}
 USE_CUR_TAG=${USE_CUR_TAG:-0}
@@ -57,7 +57,7 @@ clone_wolfssl() {
             DEPTH_ARG=${WOLFPROV_DEBUG:+""}
             DEPTH_ARG=${DEPTH_ARG:---depth=1}
 
-            git clone ${DEPTH_ARG} -b ${CLONE_TAG} ${WOLFSSL_GIT} ${WOLFSSL_SOURCE_DIR} >>$LOG_FILE 2>&1
+            git clone ${WOLFSSL_GIT} ${WOLFSSL_SOURCE_DIR} >>$LOG_FILE 2>&1
             RET=$?
 
             if [ $RET != 0 ]; then
@@ -65,6 +65,7 @@ clone_wolfssl() {
                 do_cleanup
                 exit 1
             fi
+            pushd ${WOLFSSL_SOURCE_DIR}; git checkout ${CLONE_TAG}; popd
             printf "Done.\n"
         fi
     fi

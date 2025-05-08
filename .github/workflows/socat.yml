@@ -3,7 +3,7 @@ name: Socat Tests
 # START OF COMMON SECTION
 on:
   push:
-    branches: [ 'master', 'main', 'release/**' ]
+    branches: [ 'master', 'main', 'release/**', 'wp_socat_wolfssl_versions' ]
   pull_request:
     branches: [ '*' ]
 
@@ -19,7 +19,7 @@ jobs:
     timeout-minutes: 20
     strategy:
       matrix:
-        wolfssl_ref: [ 'master', 'v5.7.4-stable' ]
+        wolfssl_ref: [ '1e3718ea7b92b04d9d81dbf8e7d6032ca0a904cb','36d829860291795873726112fd2276f601576067' ]
     steps:
       - name: Checkout wolfProvider
         uses: actions/checkout@v4
@@ -71,7 +71,7 @@ jobs:
     timeout-minutes: 20
     strategy:
       matrix:
-        wolfssl_ref: [ 'master', 'v5.7.4-stable' ]
+        wolfssl_ref: [ '1e3718ea7b92b04d9d81dbf8e7d6032ca0a904cb','36d829860291795873726112fd2276f601576067' ]
     steps:
       - name: Retrieving OpenSSL from cache
         uses: actions/cache/restore@v4
