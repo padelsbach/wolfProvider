@@ -3,7 +3,7 @@ name: Nginx Tests
 # START OF COMMON SECTION
 on:
   push:
-    branches: [ 'master', 'main', 'release/**' ]
+    branches: [ 'master', 'main', 'release/**', 'wp_old_oid_flag_alt' ]
   pull_request:
     branches: [ '*' ]
 
@@ -41,7 +41,6 @@ jobs:
 
       # If wolfssl/wolfprovider have not yet been built, pull ossl from cache
       - name: Checking OpenSSL in cache
-        if: steps.wolfprov-${{ matrix.wolfssl_ref }}-cache.hit != 'true'
         uses: actions/cache@v4
         id: openssl-cache
         with:
@@ -53,9 +52,8 @@ jobs:
 
       # If not yet built this version, build it now
       - name: Build wolfProvider
-        if: steps.wolfprov-${{ matrix.wolfssl_ref }}-cache.hit != 'true'
         run: |
-          WOLFSSL_TAG=${{ matrix.wolfssl_ref }} ./scripts/build-wolfprovider.sh
+          WOLFSSL_TAG=${{ matrix.wolfssl_ref }} WOLFSSL_CONFIG_CFLAGS_EXTRA="-DWOLFSSL_OLD_OID_SUM" ./scripts/build-wolfprovider.sh
 
       - name: Print errors
         if: ${{ failure() }}
