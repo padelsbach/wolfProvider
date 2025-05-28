@@ -1,0 +1,63 @@
+diff --git a/src/crypto/crypto_wolfssl.c b/src/crypto/crypto_wolfssl.c
+index 00ecf6135..a57fa5069 100644
+--- a/src/crypto/crypto_wolfssl.c
++++ b/src/crypto/crypto_wolfssl.c
+@@ -785,7 +785,7 @@ int crypto_dh_init(u8 generator, const u8 *prime, size_t prime_len, u8 *privkey,
+ 	int ret = -1;
+ 	WC_RNG rng;
+ 	DhKey *dh = NULL;
+-	word32 priv_sz, pub_sz;
++	word32 priv_sz = prime_len, pub_sz = prime_len;
+ 
+ 	if (TEST_FAIL())
+ 		return -1;
+diff --git a/tests/hwsim/run-all.sh b/tests/hwsim/run-all.sh
+index ee48cd058..75c3a58b5 100755
+--- a/tests/hwsim/run-all.sh
++++ b/tests/hwsim/run-all.sh
+@@ -15,7 +15,13 @@ export LOGDIR
+ if [ -z "$DBFILE" ]; then
+     DB=""
+ else
+-    DB="-S $DBFILE --commit $(git rev-parse HEAD)"
++    DB="-S $DBFILE"
++    if [ -z "$COMMITID" ]; then
++	COMMITID="$(git rev-parse HEAD)"
++    fi
++    if [ -n "$COMMITID" ]; then
++	DB="$DB --commit $COMMITID"
++    fi
+     if [ -n "$BUILD" ]; then
+ 	DB="$DB -b $BUILD"
+     fi
+diff --git a/tests/hwsim/vm/parallel-vm.py b/tests/hwsim/vm/parallel-vm.py
+index 86565c677..9aa45d079 100755
+--- a/tests/hwsim/vm/parallel-vm.py
++++ b/tests/hwsim/vm/parallel-vm.py
+@@ -411,6 +411,12 @@ def main():
+                    help="enable telnet server inside VMs, specify the base port here")
+     p.add_argument('--nocurses', dest='nocurses', action='store_const',
+                    const=True, default=False, help="Don't use curses for output")
++    p.add_argument('--wp-force-fail', dest='wp_force_fail', action='store_const',
++                   const=True, default=False, help="Sets the WOLFPROV_FORCE_FAIL environment variable")
++    p.add_argument('--openssl-conf', dest='openssl_conf', metavar='<config file>', type=str,
++                   help="specify the OpenSSL configuration file to use")
++    p.add_argument('--openssl-modules', dest='openssl_modules', metavar='<modules dir>', type=str,
++                   help="specify the OpenSSL modules directory")
+     p.add_argument('params', nargs='*')
+     args = p.parse_args()
+ 
+@@ -442,6 +448,13 @@ def main():
+         codecov_args = []
+         codecov = False
+ 
++    if args.wp_force_fail:
++        os.environ['WOLFPROV_FORCE_FAIL'] = '1'
++    if args.openssl_conf:
++        os.environ['OPENSSL_CONF'] = args.openssl_conf
++    if args.openssl_modules:
++        os.environ['OPENSSL_MODULES'] = args.openssl_modules
++
+     first_run_failures = []
+     if args.params:
+         tests = args.params
