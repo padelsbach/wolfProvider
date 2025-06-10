@@ -25,6 +25,12 @@ jobs:
       - name: Checkout wolfProvider
         uses: actions/checkout@v4
 
+      - name: ccache
+        uses: hendrikmuhs/ccache-action@v1.2
+        with:
+          create-symlink: true
+          verbose: 2
+
       # Check if this version of wolfssl/wolfprovider has already been built,
       # mark to cache these items on post if we do end up building
       - name: Checking wolfSSL/wolfProvider in cache
