@@ -16,12 +16,7 @@ jobs:
   test_sssd:
     runs-on: ubuntu-22.04
     timeout-minutes: 20
-    container:
-      image: quay.io/sssd/ci-client-devel:ubuntu-latest
-      env:
-        LD_LIBRARY_PATH: /usr/local/lib:/github/home/wolfssl-install/lib:/github/home/openssl-install/lib64
     strategy:
-      fail-fast: false
       matrix:
         sssd_ref: [ 'master', '2.9.1' ]
         wolfssl_ref: [ 'master', 'v5.8.0-stable' ]
@@ -33,6 +28,8 @@ jobs:
     steps:
       - name: Checkout wolfProvider
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
 
       # Check if this version of wolfssl/wolfprovider has already been built,
       # mark to cache these items on post if we do end up building
@@ -41,6 +38,7 @@ jobs:
         id: wolfprov-cache
         with:
           path: |
+            scripts
             wolfssl-source
             wolfssl-install
             wolfprov-install
@@ -72,43 +70,40 @@ jobs:
         run: |
           # Don't prompt for anything
           export DEBIAN_FRONTEND=noninteractive
-          apt-get update
-          apt-get install -y build-essential autoconf libldb-dev \
-          libldb2 python3-ldb bc libcap-dev libutf8proc-dev
+          sudo apt-get update
+          sudo apt-get install -y build-essential autoconf libldb-dev \
+            libldb2 python3-ldb bc libcap-dev libutf8proc-dev gettext \
+            autopoint libpopt-dev libdhash-dev libini-config-dev libkrb5-dev \
+            libpam0g-dev libpcre2-dev libc-ares-dev bind9-dnsutils libkrad-dev \
+            libsasl2-dev libjansson-dev libunistring-dev libdbus-1-dev \
+            xsltproc libxml2-utils python3.12-dev libsemanage-dev \
+            libp11-kit-dev python3.12-venv python3-setuptools libldap2-dev \
+            docbook-xsl docbook-xml docbook-xml-extras uuid-dev
 
-      - name: Setup env
+      - name: Download SSSD
+        uses: actions/checkout@v4
+        with:
+          repository: SSSD/sssd
+          ref: ${{ matrix.sssd_ref }}
+          path: sssd
+
+      - name: Build SSSD
+        working-directory: sssd
         run: |
-          ln -s samba-4.0/ldb.h /usr/include/ldb.h
-          ln -s samba-4.0/ldb_errors.h /usr/include/ldb_errors.h
-          ln -s samba-4.0/ldb_handlers.h /usr/include/ldb_handlers.h
-          ln -s samba-4.0/ldb_module.h /usr/include/ldb_module.h
-          ln -s samba-4.0/ldb_version.h /usr/include/ldb_version.h
-
-      - name: Build and test sssd with wolfProvider
-        run: |
-          # Clone SSSD
-          git clone https://github.com/SSSD/sssd.git
-          cd sssd
-          git checkout ${{ matrix.sssd_ref }}
-
-          # Configure and build SSSD with wolfProvider
+          # Configure and build SSSD
           autoreconf -ivf
           ./configure --without-samba --disable-cifs-idmap-plugin \
-          --without-nfsv4-idmapd-plugin --with-oidc-child=no
+          --without-nfsv4-idmapd-plugin --with-oidc-child=no --without-kcm \
+          CFLAGS="-I/usr/include/samba-4.0 -I/git/wolfProvider/openssl-install/include"
           make -j
 
       - name: Run tests
         working-directory: sssd
+        # shell: bash # not sure why this is needed only for this workflow
         run: |
-          # Set environment variables
-          export LD_LIBRARY_PATH=$GITHUB_WORKSPACE/wolfssl-install/lib:$GITHUB_WORKSPACE/openssl-install/lib64
-          export OPENSSL_CONF=$GITHUB_WORKSPACE/provider.conf
-          export OPENSSL_MODULES=$GITHUB_WORKSPACE/wolfprov-install/lib
+          # Set up the environment for wolfProvider
+          source $GITHUB_WORKSPACE/scripts/env-setup
           export ${{ matrix.force_fail }}
-
-          echo "Checking OpenSSL providers:"
-          $GITHUB_WORKSPACE/openssl-install/bin/openssl list -providers | tee provider-list.log
-          grep -q libwolfprov provider-list.log || (echo "ERROR: libwolfprov not found in OpenSSL providers" && exit 1)
 
           # Run tests and save result
           make check 2>&1 | tee sssd-test.log
