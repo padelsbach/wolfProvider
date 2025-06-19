@@ -3,7 +3,7 @@ name: gRPC Tests
 # START OF COMMON SECTION
 on:
   push:
-    branches: [ 'master', 'main', 'release/**' ]
+    branches: ['*']  # [ 'master', 'main', 'release/**' ]
   pull_request:
     branches: [ '*' ]
 
@@ -82,6 +82,13 @@ jobs:
           repository: grpc/grpc
           path: grpc
           ref: ${{ matrix.grpc_ref }}
+          fetch-depth: 1
+
+      # must be set after checkout
+      - name: ccache
+        uses: hendrikmuhs/ccache-action@v1.2
+        with:
+          create-symlink: true
 
       - name: Build grpc with wolfProvider
         working-directory: ./grpc

@@ -3,7 +3,7 @@ name: OpenLDAP Tests
 # START OF COMMON SECTION
 on:
   push:
-    branches: [ 'master', 'main', 'release/**' ]
+    branches: [ '*' ] # [ 'master', 'main', 'release/**' ]
   pull_request:
     branches: [ '*' ]
 
@@ -65,6 +65,12 @@ jobs:
           repository: openldap/openldap
           path: openldap
           ref: ${{ matrix.openldap_ref }}
+
+      # must be set after checkout
+      - name: ccache
+        uses: hendrikmuhs/ccache-action@v1.2
+        with:
+          create-symlink: true
 
       - name: Build and test OpenLDAP with wolfProvider
         working-directory: openldap
