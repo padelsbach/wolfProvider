@@ -72,6 +72,10 @@ jobs:
           ref: ${{ matrix.openssh_ref }}
           fetch-depth: 1
 
+      - name: list apt modules
+        run: |
+          sudo apt list --installed
+
       - name: Build and Test openssh-portable
         working-directory: openssh-portable
         run: |
@@ -87,14 +91,17 @@ jobs:
             patch -p1 < $GITHUB_WORKSPACE/osp/wolfProvider/openssh/openssh-V_10_0_P2-wolfprov.patch
           fi
 
+          sudo apt remove libssh-dev
+
           autoreconf -ivf
           ./configure --with-ssl-dir=$GITHUB_WORKSPACE/openssl-install \
-                     --with-rpath=-Wl,-rpath=$GITHUB_WORKSPACE/openssl-install/lib64 \
                      --with-prngd-socket=/tmp/prngd
           make -j
 
           # Run all the tests except (t-exec) as it takes too long
-          export ${{ matrix.force_fail }}
-          make file-tests interop-tests extra-tests unit 2>&1 | tee openssh-test.log
-          TEST_RESULT=$?
+          make unit file-tests interop-tests extra-tests 2>&1 | tee openssh-test.log
+
+          # Capture the test result using PIPESTATUS (Bash only)
+          TEST_RESULT=${PIPESTATUS[0]}
+
           $GITHUB_WORKSPACE/.github/scripts/check-workflow-result.sh $TEST_RESULT ${{ matrix.force_fail }} openssh
