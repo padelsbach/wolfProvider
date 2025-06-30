@@ -3851,5 +3851,358 @@ const OSSL_DISPATCH wp_rsapss_pki_pem_encoder_functions[] = {
     { 0, NULL }
 };
 
+
+/**
+ * Create a new RSA text encoder context.
+ *
+ * @param [in] provCtx  Provider context.
+ * @return  New RSA encoder/decoder context object on success.
+ * @return  NULL on failure.
+ */
+static wp_RsaEncDecCtx* wp_rsa_text_enc_new(WOLFPROV_CTX* provCtx)
+{
+    return wp_rsa_enc_dec_new(provCtx, RSA_FLAG_TYPE_RSA, WP_ENC_FORMAT_TEXT,
+        WP_FORMAT_TEXT);
+}
+
+/**
+ * Dispose of RSA text encoder context object.
+ *
+ * @param [in, out] ctx  RSA encoder/decoder context object.
+ */
+static void wp_rsa_text_enc_free(wp_RsaEncDecCtx* ctx)
+{
+    wp_rsa_enc_dec_free(ctx);
+}
+
+/**
+ * Return whether the RSA text encoder handles this part of the key.
+ *
+ * @param [in] provCtx   Provider context. Unused.
+ * @param [in] selection Parts of key to handle.
+ * @return  1 when supported.
+ * @return  0 when not supported.
+ */
+static int wp_rsa_text_enc_does_selection(WOLFPROV_CTX* provCtx, int selection)
+{
+    int ok;
+
+    (void)provCtx;
+
+    /* Text encoder supports both public and private key parts */
+    if (selection == 0) {
+        ok = 1;
+    }
+    else {
+        ok = ((selection & OSSL_KEYMGMT_SELECT_PUBLIC_KEY) != 0) ||
+             ((selection & OSSL_KEYMGMT_SELECT_PRIVATE_KEY) != 0);
+    }
+
+    WOLFPROV_LEAVE(WP_LOG_PK, __FILE__ ":" WOLFPROV_STRINGIZE(__LINE__), ok);
+    return ok;
+}
+
+/**
+ * Encode the RSA key in text format.
+ *
+ * @param [in]      ctx        RSA encoder/decoder context object.
+ * @param [in, out] cBio       Core BIO to write data to.
+ * @param [in]      key        RSA key object.
+ * @param [in]      params     Key parameters. Unused.
+ * @param [in]      selection  Parts of key to encode.
+ * @param [in]      pwCb       Password callback. Unused.
+ * @param [in]      pwCbArg    Argument to pass to password callback. Unused.
+ * @return  1 on success.
+ * @return  0 on failure.
+ */
+static int wp_rsa_encode_text(wp_RsaEncDecCtx* ctx, OSSL_CORE_BIO* cBio,
+    const wp_Rsa* key, const OSSL_PARAM* params, int selection,
+    OSSL_PASSPHRASE_CALLBACK* pwCb, void* pwCbArg)
+{
+#if 0
+    (void)ctx;
+    (void)cBio;
+    (void)key;
+    (void)params;
+    (void)selection;
+    (void)pwCb;
+    (void) pwCbArg;
+    printf("HERE\n");
+    return 1;
+#else
+    int ok = 1;
+    BIO *out = wp_corebio_get_bio(ctx->provCtx, cBio);
+    char* textData = NULL;
+    size_t textLen = 0;
+    int i;
+    int hasPriv = (selection & OSSL_KEYMGMT_SELECT_PRIVATE_KEY) != 0;
+    int hasPub = (selection & OSSL_KEYMGMT_SELECT_PUBLIC_KEY) != 0;
+    unsigned char* binData = NULL;
+    size_t binLen = 0;
+    int rc;
+
+    (void)params;
+    (void)pwCb;
+    (void)pwCbArg;
+
+    if (out == NULL) {
+        ok = 0;
+    }
+
+    if (ok) {
+        /* Calculate total size needed for text output */
+        textLen = 1024; /* Base size for headers and formatting */
+
+        /* Add space for each key component */
+        if (hasPub) {
+            textLen += 256; /* For n and e */
+        }
+        if (hasPriv) {
+            textLen += 1024; /* For private key components */
+        }
+
+        textData = OPENSSL_malloc(textLen);
+        if (textData == NULL) {
+            ok = 0;
+        }
+    }
+
+    if (ok) {
+        size_t pos = 0;
+
+        /* Write header */
+        pos += XSNPRINTF(textData + pos, textLen - pos,
+            "RSA Key Information\n");
+        pos += XSNPRINTF(textData + pos, textLen - pos,
+            "==================\n\n");
+
+        /* Write key type */
+        if (key->type == RSA_FLAG_TYPE_RSASSAPSS) {
+            pos += XSNPRINTF(textData + pos, textLen - pos,
+                "Key Type: RSA-PSS\n");
+        } else {
+            pos += XSNPRINTF(textData + pos, textLen - pos,
+                "Key Type: RSA\n");
+        }
+
+        /* Write key size */
+        pos += XSNPRINTF(textData + pos, textLen - pos,
+            "Key Size: %d bits\n\n", key->bits);
+
+        /* Write public key components */
+        if (hasPub) {
+            pos += XSNPRINTF(textData + pos, textLen - pos,
+                "Public Key Components:\n");
+            pos += XSNPRINTF(textData + pos, textLen - pos,
+                "---------------------\n");
+
+            /* Write modulus (n) */
+            binLen = mp_unsigned_bin_size(&key->key.n);
+            if (binLen > 0) {
+                binData = OPENSSL_malloc(binLen);
+                if (binData != NULL) {
+                    rc = mp_to_unsigned_bin(&key->key.n, binData);
+                    if (rc == MP_OKAY) {
+                        pos += XSNPRINTF(textData + pos, textLen - pos,
+                            "Modulus (n): ");
+                        for (i = 0; i < (int)binLen && pos < textLen - 3; i++) {
+                            pos += XSNPRINTF(textData + pos, textLen - pos,
+                                "%02x", binData[i]);
+                        }
+                        pos += XSNPRINTF(textData + pos, textLen - pos, "\n");
+                    }
+                    OPENSSL_free(binData);
+                    binData = NULL;
+                }
+            }
+
+            /* Write public exponent (e) */
+            binLen = mp_unsigned_bin_size(&key->key.e);
+            if (binLen > 0) {
+                binData = OPENSSL_malloc(binLen);
+                if (binData != NULL) {
+                    rc = mp_to_unsigned_bin(&key->key.e, binData);
+                    if (rc == MP_OKAY) {
+                        pos += XSNPRINTF(textData + pos, textLen - pos,
+                            "Public Exponent (e): ");
+                        for (i = 0; i < (int)binLen && pos < textLen - 3; i++) {
+                            pos += XSNPRINTF(textData + pos, textLen - pos,
+                                "%02x", binData[i]);
+                        }
+                        pos += XSNPRINTF(textData + pos, textLen - pos, "\n");
+                    }
+                    OPENSSL_free(binData);
+                    binData = NULL;
+                }
+            }
+            pos += XSNPRINTF(textData + pos, textLen - pos, "\n");
+        }
+
+        /* Write private key components */
+        if (hasPriv) {
+            pos += XSNPRINTF(textData + pos, textLen - pos,
+                "Private Key Components:\n");
+            pos += XSNPRINTF(textData + pos, textLen - pos,
+                "----------------------\n");
+
+            /* Write private exponent (d) */
+            binLen = mp_unsigned_bin_size(&key->key.d);
+            if (binLen > 0) {
+                binData = OPENSSL_malloc(binLen);
+                if (binData != NULL) {
+                    rc = mp_to_unsigned_bin(&key->key.d, binData);
+                    if (rc == MP_OKAY) {
+                        pos += XSNPRINTF(textData + pos, textLen - pos,
+                            "Private Exponent (d): ");
+                        for (i = 0; i < (int)binLen && pos < textLen - 3; i++) {
+                            pos += XSNPRINTF(textData + pos, textLen - pos,
+                                "%02x", binData[i]);
+                        }
+                        pos += XSNPRINTF(textData + pos, textLen - pos, "\n");
+                    }
+                    OPENSSL_free(binData);
+                    binData = NULL;
+                }
+            }
+
+            /* Write prime factors (p, q) */
+            binLen = mp_unsigned_bin_size(&key->key.p);
+            if (binLen > 0) {
+                binData = OPENSSL_malloc(binLen);
+                if (binData != NULL) {
+                    rc = mp_to_unsigned_bin(&key->key.p, binData);
+                    if (rc == MP_OKAY) {
+                        pos += XSNPRINTF(textData + pos, textLen - pos,
+                            "Prime Factor 1 (p): ");
+                        for (i = 0; i < (int)binLen && pos < textLen - 3; i++) {
+                            pos += XSNPRINTF(textData + pos, textLen - pos,
+                                "%02x", binData[i]);
+                        }
+                        pos += XSNPRINTF(textData + pos, textLen - pos, "\n");
+                    }
+                    OPENSSL_free(binData);
+                    binData = NULL;
+                }
+            }
+
+            binLen = mp_unsigned_bin_size(&key->key.q);
+            if (binLen > 0) {
+                binData = OPENSSL_malloc(binLen);
+                if (binData != NULL) {
+                    rc = mp_to_unsigned_bin(&key->key.q, binData);
+                    if (rc == MP_OKAY) {
+                        pos += XSNPRINTF(textData + pos, textLen - pos,
+                            "Prime Factor 2 (q): ");
+                        for (i = 0; i < (int)binLen && pos < textLen - 3; i++) {
+                            pos += XSNPRINTF(textData + pos, textLen - pos,
+                                "%02x", binData[i]);
+                        }
+                        pos += XSNPRINTF(textData + pos, textLen - pos, "\n");
+                    }
+                    OPENSSL_free(binData);
+                    binData = NULL;
+                }
+            }
+
+            /* Write CRT components (dP, dQ, u) */
+            binLen = mp_unsigned_bin_size(&key->key.dP);
+            if (binLen > 0) {
+                binData = OPENSSL_malloc(binLen);
+                if (binData != NULL) {
+                    rc = mp_to_unsigned_bin(&key->key.dP, binData);
+                    if (rc == MP_OKAY) {
+                        pos += XSNPRINTF(textData + pos, textLen - pos,
+                            "CRT Exponent 1 (dP): ");
+                        for (i = 0; i < (int)binLen && pos < textLen - 3; i++) {
+                            pos += XSNPRINTF(textData + pos, textLen - pos,
+                                "%02x", binData[i]);
+                        }
+                        pos += XSNPRINTF(textData + pos, textLen - pos, "\n");
+                    }
+                    OPENSSL_free(binData);
+                    binData = NULL;
+                }
+            }
+
+            binLen = mp_unsigned_bin_size(&key->key.dQ);
+            if (binLen > 0) {
+                binData = OPENSSL_malloc(binLen);
+                if (binData != NULL) {
+                    rc = mp_to_unsigned_bin(&key->key.dQ, binData);
+                    if (rc == MP_OKAY) {
+                        pos += XSNPRINTF(textData + pos, textLen - pos,
+                            "CRT Exponent 2 (dQ): ");
+                        for (i = 0; i < (int)binLen && pos < textLen - 3; i++) {
+                            pos += XSNPRINTF(textData + pos, textLen - pos,
+                                "%02x", binData[i]);
+                        }
+                        pos += XSNPRINTF(textData + pos, textLen - pos, "\n");
+                    }
+                    OPENSSL_free(binData);
+                    binData = NULL;
+                }
+            }
+
+            binLen = mp_unsigned_bin_size(&key->key.u);
+            if (binLen > 0) {
+                binData = OPENSSL_malloc(binLen);
+                if (binData != NULL) {
+                    rc = mp_to_unsigned_bin(&key->key.u, binData);
+                    if (rc == MP_OKAY) {
+                        pos += XSNPRINTF(textData + pos, textLen - pos,
+                            "CRT Coefficient (u): ");
+                        for (i = 0; i < (int)binLen && pos < textLen - 3; i++) {
+                            pos += XSNPRINTF(textData + pos, textLen - pos,
+                                "%02x", binData[i]);
+                        }
+                        pos += XSNPRINTF(textData + pos, textLen - pos, "\n");
+                    }
+                    OPENSSL_free(binData);
+                    binData = NULL;
+                }
+            }
+            pos += XSNPRINTF(textData + pos, textLen - pos, "\n");
+        }
+
+        /* Write PSS parameters if applicable */
+        if (key->type == RSA_FLAG_TYPE_RSASSAPSS && key->pssDefSet) {
+            pos += XSNPRINTF(textData + pos, textLen - pos,
+                "PSS Parameters:\n");
+            pos += XSNPRINTF(textData + pos, textLen - pos,
+                "---------------\n");
+            pos += XSNPRINTF(textData + pos, textLen - pos,
+                "Hash Algorithm: %s\n", key->pssParams.mdName);
+            pos += XSNPRINTF(textData + pos, textLen - pos,
+                "MGF Hash Algorithm: %s\n", key->pssParams.mgfMdName);
+            pos += XSNPRINTF(textData + pos, textLen - pos,
+                "Salt Length: %d bytes\n\n", key->pssParams.saltLen);
+        }
+
+        textLen = pos;
+    }
+
+    if (ok) {
+        rc = BIO_write(out, textData, (int)textLen);
+        if (rc <= 0) {
+            ok = 0;
+        }
+    }
+
+    OPENSSL_free(textData);
+    BIO_free(out);
+
+    WOLFPROV_LEAVE(WP_LOG_PK, __FILE__ ":" WOLFPROV_STRINGIZE(__LINE__), ok);
+    return ok;
+#endif
+}
+
+const OSSL_DISPATCH wp_rsa_text_encoder_functions[] = {
+    { OSSL_FUNC_ENCODER_NEWCTX,         (DFUNC)wp_rsa_text_enc_new             },
+    { OSSL_FUNC_ENCODER_FREECTX,        (DFUNC)wp_rsa_text_enc_free            },
+    { OSSL_FUNC_ENCODER_DOES_SELECTION, (DFUNC)wp_rsa_text_enc_does_selection  },
+    { OSSL_FUNC_ENCODER_ENCODE,         (DFUNC)wp_rsa_encode_text             },
+    { 0, NULL }
+};
+
 #endif /* WP_HAVE_RSA */
 
