@@ -992,3 +992,41 @@ byte wp_ct_int_mask_gte(int a, int b)
     return ((((uint32_t)a - (uint32_t)b) >> 31) - 1);
 }
 
+/**
+ * Wrapper function for RSA operations that chooses between wc_RsaDirect and
+ * wc_RsaPublicEncrypt_ex/wc_RsaPrivateDecrypt_ex based on the operation type.
+ *
+ * @param [in]  in      Input buffer.
+ * @param [in]  inLen   Length of input buffer.
+ * @param [out] out     Output buffer.
+ * @param [out] outSz   Length of output buffer.
+ * @param [in]  key     RSA key.
+ * @param [in]  type    Operation type (RSA_PUBLIC_ENCRYPT, RSA_PRIVATE_DECRYPT, etc.).
+ * @param [in]  rng     Random number generator.
+ * @return  Length of output on success, negative value on failure.
+ */
+int wp_RsaInternal(byte* in, word32 inLen, byte* out, word32* outSz,
+           RsaKey* key, int type, WC_RNG* rng)
+{
+    int ret = -1;
+
+#ifdef WP_RSA_DIRECT
+    /* Use wc_RsaDirect when WP_RSA_DIRECT is defined */
+    ret = wc_RsaDirect(in, inLen, out, outSz, key, type, rng);
+#else
+    /* Use the _ex functions when WP_RSA_DIRECT is not defined */
+    if (type == RSA_PUBLIC_ENCRYPT) {
+        ret = wc_RsaPublicEncrypt_ex(in, inLen, out, *outSz, key, rng,
+                                     WC_RSA_NO_PAD, WC_HASH_TYPE_NONE, 
+                                     WC_MGF1NONE, NULL, 0);
+    }
+    else if (type == RSA_PRIVATE_DECRYPT) {
+        ret = wc_RsaPrivateDecrypt_ex(in, inLen, out, *outSz, key,
+                                      WC_RSA_NO_PAD, WC_HASH_TYPE_NONE, 
+                                      WC_MGF1NONE, NULL, 0);
+    }
+#endif
+
+    return ret;
+}
+

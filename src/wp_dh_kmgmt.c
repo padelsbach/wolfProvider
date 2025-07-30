@@ -1535,6 +1535,7 @@ static int wp_dh_gen_set_params(wp_DhGenCtx* ctx, const OSSL_PARAM params[])
  */
 static int wp_dh_gen_parameters(wp_DhGenCtx *ctx, wp_Dh* dh)
 {
+#ifdef WP_DH_EXTRA
     int ok = 1;
     int rc;
 
@@ -1545,6 +1546,13 @@ static int wp_dh_gen_parameters(wp_DhGenCtx *ctx, wp_Dh* dh)
 
     WOLFPROV_LEAVE(WP_LOG_KE, __FILE__ ":" WOLFPROV_STRINGIZE(__LINE__), ok);
     return ok;
+#else
+    (void)ctx;
+    (void)dh;
+    WOLFPROV_LEAVE(WP_LOG_KE, __FILE__ ":" WOLFPROV_STRINGIZE(__LINE__),
+                   0);
+    return 0;
+#endif /* WP_DH_EXTRA */
 }
 
 /**
@@ -2617,6 +2625,7 @@ static int wp_dh_encode(wp_DhEncDecCtx* ctx, OSSL_CORE_BIO *cBio,
         keyLen = derLen;
     }
     else if (ok && (ctx->encoding == WP_FORMAT_PEM)) {
+#ifdef WP_DER_TO_PEM
         rc = wc_DerToPemEx(derData, (word32)derLen, NULL, 0, cipherInfo,
             pemType);
         if (rc <= 0) {
@@ -2640,6 +2649,10 @@ static int wp_dh_encode(wp_DhEncDecCtx* ctx, OSSL_CORE_BIO *cBio,
             keyLen = pemLen = rc;
             keyData = pemData;
         }
+#else
+        (void)pemType;
+        ok = 0;
+#endif /* WOLFSSL_DER_TO_PEM */
     }
     if (ok) {
         rc = BIO_write(out, keyData, (int)keyLen);

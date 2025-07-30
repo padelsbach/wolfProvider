@@ -2723,6 +2723,7 @@ static int wp_ecc_encode(wp_EccEncDecCtx* ctx, OSSL_CORE_BIO *cBio,
         keyLen = derLen;
     }
     else if (ok && (ctx->encoding == WP_FORMAT_PEM)) {
+#ifdef WP_DER_TO_PEM
         rc = wc_DerToPemEx(derData, (word32)derLen, NULL, 0, cipherInfo,
             pemType);
         if (rc <= 0) {
@@ -2755,6 +2756,10 @@ static int wp_ecc_encode(wp_EccEncDecCtx* ctx, OSSL_CORE_BIO *cBio,
             pemData[pemLen - 19] = 'E';
             pemData[pemLen - 18] = 'C';
         }
+#else
+        (void)pemType;
+        ok = 0;
+#endif /* WOLFSSL_DER_TO_PEM */
     }
     if (ok) {
         rc = BIO_write(out, keyData, (int)keyLen);

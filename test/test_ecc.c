@@ -23,6 +23,7 @@
 #include <openssl/store.h>
 #include <openssl/core_names.h>
 #include <openssl/param_build.h>
+#include <openssl/ec.h>
 
 #ifdef WP_HAVE_ECC
 

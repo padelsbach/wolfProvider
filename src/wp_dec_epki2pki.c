@@ -111,6 +111,7 @@ static int wp_pem_password_cb(char* passwd, int sz, int rw, void* userdata)
 static int wp_DecryptPKCS8Key(byte* input, word32 sz, const char* password,
     int passwordSz)
 {
+#ifdef WP_DER_TO_PEM
     int ret = 0;
     unsigned char* pem = NULL;
     DerBuffer *der = NULL;
@@ -165,6 +166,13 @@ static int wp_DecryptPKCS8Key(byte* input, word32 sz, const char* password,
     wc_FreeDer(&der);
     OPENSSL_free(pem);
     return ret;
+#else
+    (void)input;
+    (void)sz;
+    (void)password;
+    (void)passwordSz;
+    return ASN_PARSE_E; /* Not supported. */
+#endif /* WP_DER_TO_PEM */
 }
 #endif
 

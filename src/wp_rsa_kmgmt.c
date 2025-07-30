@@ -261,7 +261,9 @@ typedef struct wp_RsaGenCtx {
 
 
 /* Prototype for generation initialization. */
+#ifdef WP_RSA_KEYGEN
 static int wp_rsa_gen_set_params(wp_RsaGenCtx* ctx, const OSSL_PARAM params[]);
+#endif /* WP_RSA_KEYGEN */
 
 /**
  * Increment reference count for key.
@@ -385,6 +387,7 @@ int wp_rsa_check_key_size(wp_Rsa* rsa, int allow1024)
     return wp_rsa_check_key_size_int(rsa->bits, allow1024);
 }
 
+#ifdef WP_RSA_KEYGEN
 /**
  * Check the RSA key size is valid.
  *
@@ -396,6 +399,7 @@ static int wp_rsagen_check_key_size(wp_RsaGenCtx* rsagen)
 {
     return wp_rsa_check_key_size_int((int)rsagen->bits, 0);
 }
+#endif /* WP_RSA_KEYGEN */
 
 /**
  * Get the PSS digests.
@@ -1383,6 +1387,8 @@ static const OSSL_PARAM* wp_rsa_export_types(int selection)
     return wp_rsa_key_types(selection);
 }
 
+#ifdef WP_RSA_KEYGEN
+
 /*
  * RSA generation
  */
@@ -1566,42 +1572,6 @@ static int wp_rsa_gen_set_params(wp_RsaGenCtx* ctx, const OSSL_PARAM params[])
     return ok;
 }
 
-/*
- * RSA PKCS #1.5
- */
-
-/**
- * Create a new RSA PKCS#1.5 key.
- *
- * @param [in] provCtx  Provider context.
- * @return  NULL on failure.
- * @return  New RSA key object on success.
- */
-static wp_Rsa* wp_rsa_new(WOLFPROV_CTX* provctx)
-{
-    return wp_rsa_base_new(provctx, RSA_FLAG_TYPE_RSA);
-}
-
-/**
- * Return an array of supported gettable parameters for the RSA key object.
- *
- * @param [in] provCtx  Provider context object. Unused.
- * @return  Array of parameters with data type.
- */
-static const OSSL_PARAM* wp_rsa_gettable_params(WOLFPROV_CTX* provctx)
-{
-    static const OSSL_PARAM wp_rsa_params[] = {
-        OSSL_PARAM_int(OSSL_PKEY_PARAM_BITS, NULL),
-        OSSL_PARAM_int(OSSL_PKEY_PARAM_SECURITY_BITS, NULL),
-        OSSL_PARAM_int(OSSL_PKEY_PARAM_MAX_SIZE, NULL),
-        OSSL_PARAM_utf8_string(OSSL_PKEY_PARAM_DEFAULT_DIGEST, NULL, 0),
-        WP_RSA_NUM_PARAMS,
-        OSSL_PARAM_END
-    };
-    (void)provctx;
-    return wp_rsa_params;
-}
-
 /**
  * Create RSA generation context object.
  *
@@ -1641,6 +1611,45 @@ static const OSSL_PARAM* wp_rsa_gen_settable_params(wp_RsaGenCtx* gctx,
     return wp_rsa_gen_settable;
 }
 
+#endif /* WP_RSA_KEYGEN */
+
+/*
+ * RSA PKCS #1.5
+ */
+
+/**
+ * Create a new RSA PKCS#1.5 key.
+ *
+ * @param [in] provCtx  Provider context.
+ * @return  NULL on failure.
+ * @return  New RSA key object on success.
+ */
+static wp_Rsa* wp_rsa_new(WOLFPROV_CTX* provctx)
+{
+    return wp_rsa_base_new(provctx, RSA_FLAG_TYPE_RSA);
+}
+
+/**
+ * Return an array of supported gettable parameters for the RSA key object.
+ *
+ * @param [in] provCtx  Provider context object. Unused.
+ * @return  Array of parameters with data type.
+ */
+static const OSSL_PARAM* wp_rsa_gettable_params(WOLFPROV_CTX* provctx)
+{
+    static const OSSL_PARAM wp_rsa_params[] = {
+        OSSL_PARAM_int(OSSL_PKEY_PARAM_BITS, NULL),
+        OSSL_PARAM_int(OSSL_PKEY_PARAM_SECURITY_BITS, NULL),
+        OSSL_PARAM_int(OSSL_PKEY_PARAM_MAX_SIZE, NULL),
+        OSSL_PARAM_utf8_string(OSSL_PKEY_PARAM_DEFAULT_DIGEST, NULL, 0),
+        WP_RSA_NUM_PARAMS,
+        OSSL_PARAM_END
+    };
+    (void)provctx;
+    return wp_rsa_params;
+}
+
+
 /**
  * Load the RSA key.
  *
@@ -1672,6 +1681,7 @@ const OSSL_DISPATCH wp_rsa_keymgmt_functions[] = {
     { OSSL_FUNC_KEYMGMT_IMPORT_TYPES,      (DFUNC)wp_rsa_import_types         },
     { OSSL_FUNC_KEYMGMT_EXPORT,            (DFUNC)wp_rsa_export               },
     { OSSL_FUNC_KEYMGMT_EXPORT_TYPES,      (DFUNC)wp_rsa_export_types         },
+    #ifdef WP_RSA_KEYGEN
     /* RSA PKCS#1.5 generation */
     { OSSL_FUNC_KEYMGMT_GEN_INIT,          (DFUNC)wp_rsa_gen_init             },
     { OSSL_FUNC_KEYMGMT_GEN_SET_PARAMS,    (DFUNC)wp_rsa_gen_set_params       },
@@ -1679,6 +1689,7 @@ const OSSL_DISPATCH wp_rsa_keymgmt_functions[] = {
                                            (DFUNC)wp_rsa_gen_settable_params  },
     { OSSL_FUNC_KEYMGMT_GEN,               (DFUNC)wp_rsa_gen                  },
     { OSSL_FUNC_KEYMGMT_GEN_CLEANUP,       (DFUNC)wp_rsa_gen_cleanup          },
+    #endif
     { 0, NULL }
 };
 
@@ -1750,6 +1761,7 @@ static const char* wp_rsa_query_operation_name(int operation_id)
     return "RSA";
 }
 
+#ifdef WP_RSA_KEYGEN
 /**
  * Create RSA PSS generation context object.
  *
@@ -1792,6 +1804,8 @@ static const OSSL_PARAM* wp_rsapss_gen_settable_params(wp_RsaGenCtx* gctx,
     return wp_rsapss_gen_settable;
 }
 
+#endif /* WP_RSA_KEYGEN */
+
 /** Dispatch table for RSA PSS key management. */
 const OSSL_DISPATCH wp_rsapss_keymgmt_functions[] = {
     { OSSL_FUNC_KEYMGMT_NEW,               (DFUNC)wp_rsapss_new               },
@@ -1809,6 +1823,7 @@ const OSSL_DISPATCH wp_rsapss_keymgmt_functions[] = {
     { OSSL_FUNC_KEYMGMT_EXPORT_TYPES,      (DFUNC)wp_rsa_export_types         },
     { OSSL_FUNC_KEYMGMT_QUERY_OPERATION_NAME,
                                          (DFUNC)wp_rsa_query_operation_name   },
+#ifdef WP_RSA_KEYGEN
     /* RSAPSS generation */
     { OSSL_FUNC_KEYMGMT_GEN_INIT,          (DFUNC)wp_rsapss_gen_init          },
     { OSSL_FUNC_KEYMGMT_GEN_SET_PARAMS,    (DFUNC)wp_rsa_gen_set_params       },
@@ -1816,6 +1831,7 @@ const OSSL_DISPATCH wp_rsapss_keymgmt_functions[] = {
                                          (DFUNC)wp_rsapss_gen_settable_params },
     { OSSL_FUNC_KEYMGMT_GEN,               (DFUNC)wp_rsa_gen                  },
     { OSSL_FUNC_KEYMGMT_GEN_CLEANUP,       (DFUNC)wp_rsa_gen_cleanup          },
+#endif
     { 0, NULL }
 };
 
@@ -2602,6 +2618,7 @@ int wp_rsa_pss_encode_alg_id(const wp_Rsa* rsa, const char* mdName,
  */
 static int wp_rsa_encode_spki_size(const wp_Rsa* rsa, size_t* keyLen)
 {
+#ifdef WP_CERT_GEN
     int ok = 1;
 
 #if LIBWOLFSSL_VERSION_HEX >= 0x05000000
@@ -2635,6 +2652,13 @@ static int wp_rsa_encode_spki_size(const wp_Rsa* rsa, size_t* keyLen)
 
     WOLFPROV_LEAVE(WP_LOG_PK, __FILE__ ":" WOLFPROV_STRINGIZE(__LINE__), ok);
     return ok;
+#else 
+    /* Not supported in this build. */
+    (void)rsa;
+    (void)keyLen;
+    WOLFPROV_LEAVE(WP_LOG_PK, __FILE__ ":" WOLFPROV_STRINGIZE(__LINE__), 0);
+    return 0;
+#endif /* WP_CERT_GEN */
 }
 
 /**
@@ -2650,6 +2674,7 @@ static int wp_rsa_encode_spki_size(const wp_Rsa* rsa, size_t* keyLen)
 static int wp_rsa_encode_spki(const wp_Rsa* rsa, unsigned char* keyData,
     size_t* keyLen)
 {
+#ifdef WP_CERT_GEN
     int ok = 1;
     int ret;
 
@@ -2694,6 +2719,14 @@ static int wp_rsa_encode_spki(const wp_Rsa* rsa, unsigned char* keyData,
 
     WOLFPROV_LEAVE(WP_LOG_PK, __FILE__ ":" WOLFPROV_STRINGIZE(__LINE__), ok);
     return ok;
+#else
+    /* Not supported in this build. */
+    (void)rsa;
+    (void)keyData;
+    (void)keyLen;
+    WOLFPROV_LEAVE(WP_LOG_PK, __FILE__ ":" WOLFPROV_STRINGIZE(__LINE__), 0);
+    return 0;
+#endif /* WP_CERT_GEN */
 }
 
 /**
@@ -2706,6 +2739,7 @@ static int wp_rsa_encode_spki(const wp_Rsa* rsa, unsigned char* keyData,
  */
 static int wp_rsa_encode_pub_size(const wp_Rsa* rsa, size_t* keyLen)
 {
+#ifdef WP_CERT_GEN
     int ok = 1;
     int ret;
 
@@ -2723,6 +2757,13 @@ static int wp_rsa_encode_pub_size(const wp_Rsa* rsa, size_t* keyLen)
 
     WOLFPROV_LEAVE(WP_LOG_PK, __FILE__ ":" WOLFPROV_STRINGIZE(__LINE__), ok);
     return ok;
+#else
+    /* Not supported in this build. */
+    (void)rsa;
+    (void)keyLen;
+    WOLFPROV_LEAVE(WP_LOG_PK, __FILE__ ":" WOLFPROV_STRINGIZE(__LINE__), 0);
+    return 0;
+#endif /* WP_CERT_GEN */
 }
 
 /**
@@ -2738,6 +2779,7 @@ static int wp_rsa_encode_pub_size(const wp_Rsa* rsa, size_t* keyLen)
 static int wp_rsa_encode_pub(const wp_Rsa* rsa, unsigned char* keyData,
     size_t* keyLen)
 {
+#ifdef WP_CERT_GEN
     int ok = 1;
     int ret;
 
@@ -2760,6 +2802,14 @@ static int wp_rsa_encode_pub(const wp_Rsa* rsa, unsigned char* keyData,
 
     WOLFPROV_LEAVE(WP_LOG_PK, __FILE__ ":" WOLFPROV_STRINGIZE(__LINE__), ok);
     return ok;
+#else
+    /* Not supported in this build. */
+    (void)rsa;
+    (void)keyData;
+    (void)keyLen;
+    WOLFPROV_LEAVE(WP_LOG_PK, __FILE__ ":" WOLFPROV_STRINGIZE(__LINE__), 0);
+    return 0;
+#endif /* WP_CERT_GEN */
 }
 
 /* RSAk defined in private header <wolfssl/wolfcrypt/asn.h> */
@@ -2783,6 +2833,7 @@ static int wp_rsa_encode_pub(const wp_Rsa* rsa, unsigned char* keyData,
  */
 static int wp_rsa_encode_pki_size(const wp_Rsa* rsa, size_t* keyLen, int algoId)
 {
+#ifdef WP_RSA_KEYGEN
     int ok = 1;
     int ret;
     word32 len;
@@ -2803,6 +2854,13 @@ static int wp_rsa_encode_pki_size(const wp_Rsa* rsa, size_t* keyLen, int algoId)
 
     WOLFPROV_LEAVE(WP_LOG_PK, __FILE__ ":" WOLFPROV_STRINGIZE(__LINE__), ok);
     return ok;
+#else
+    (void)rsa;
+    (void)keyLen;
+    (void)algoId;
+    WOLFPROV_LEAVE(WP_LOG_PK, __FILE__ ":" WOLFPROV_STRINGIZE(__LINE__), 0);
+    return 0; /* Not supported */
+#endif /* WP_RSA_KEYGEN */
 }
 
 /**
@@ -2819,6 +2877,7 @@ static int wp_rsa_encode_pki_size(const wp_Rsa* rsa, size_t* keyLen, int algoId)
 static int wp_rsa_encode_pki(const wp_Rsa* rsa, unsigned char* keyData,
     size_t* keyLen, int algoId)
 {
+#ifdef WP_RSA_KEYGEN
     int ok = 1;
     int ret;
     unsigned char* pkcs1Data = NULL;
@@ -2858,6 +2917,14 @@ static int wp_rsa_encode_pki(const wp_Rsa* rsa, unsigned char* keyData,
     OPENSSL_clear_free(pkcs1Data, pkcs1Len);
     WOLFPROV_LEAVE(WP_LOG_PK, __FILE__ ":" WOLFPROV_STRINGIZE(__LINE__), ok);
     return ok;
+#else
+    (void)rsa;
+    (void)keyData;
+    (void)keyLen;
+    (void)algoId;
+    WOLFPROV_LEAVE(WP_LOG_PK, __FILE__ ":" WOLFPROV_STRINGIZE(__LINE__), 0);
+    return 0; /* Not supported */
+#endif /* WP_RSA_KEYGEN */
 }
 
 /**
@@ -2870,6 +2937,7 @@ static int wp_rsa_encode_pki(const wp_Rsa* rsa, unsigned char* keyData,
  */
 static int wp_rsa_encode_priv_size(const wp_Rsa* rsa, size_t* keyLen)
 {
+#ifdef WP_RSA_KEYGEN
     int ok = 1;
     int ret;
 
@@ -2883,6 +2951,12 @@ static int wp_rsa_encode_priv_size(const wp_Rsa* rsa, size_t* keyLen)
 
     WOLFPROV_LEAVE(WP_LOG_PK, __FILE__ ":" WOLFPROV_STRINGIZE(__LINE__), ok);
     return ok;
+#else
+    (void)rsa;
+    (void)keyLen;
+    WOLFPROV_LEAVE(WP_LOG_PK, __FILE__ ":" WOLFPROV_STRINGIZE(__LINE__), 0);
+    return 0; /* Not supported */
+#endif /* WP_RSA_KEYGEN */
 }
 
 /**
@@ -2898,6 +2972,7 @@ static int wp_rsa_encode_priv_size(const wp_Rsa* rsa, size_t* keyLen)
 static int wp_rsa_encode_priv(const wp_Rsa* rsa, unsigned char* keyData,
     size_t* keyLen)
 {
+#ifdef WP_RSA_KEYGEN
     int ok = 1;
     int ret;
 
@@ -2911,6 +2986,13 @@ static int wp_rsa_encode_priv(const wp_Rsa* rsa, unsigned char* keyData,
 
     WOLFPROV_LEAVE(WP_LOG_PK, __FILE__ ":" WOLFPROV_STRINGIZE(__LINE__), ok);
     return ok;
+#else
+    (void)rsa;
+    (void)keyData;
+    (void)keyLen;
+    WOLFPROV_LEAVE(WP_LOG_PK, __FILE__ ":" WOLFPROV_STRINGIZE(__LINE__), 0);
+    return 0; /* Not supported */
+#endif /* WP_RSA_KEYGEN */
 }
 
 #ifdef WOLFSSL_ENCRYPTED_KEYS
@@ -3104,9 +3186,11 @@ static int wp_rsa_encode(wp_RsaEncDecCtx* ctx, OSSL_CORE_BIO* cBio,
     size_t derLen = 0;
     unsigned char* pemData = NULL;
     size_t pemLen = 0;
-    int pemType = PKCS8_PRIVATEKEY_TYPE;
     int private = 0;
+    int pemType = PKCS8_PRIVATEKEY_TYPE;
+#ifdef WOLFSSL_ENCRYPTED_KEYS
     byte* cipherInfo = NULL;
+#endif /* WOLFSSL_ENCRYPTED_KEYS */
 
     (void)params;
     (void)selection;
@@ -3209,6 +3293,7 @@ static int wp_rsa_encode(wp_RsaEncDecCtx* ctx, OSSL_CORE_BIO* cBio,
         keyLen = derLen;
     }
     else if (ok && (ctx->encoding == WP_FORMAT_PEM)) {
+#ifdef WP_DER_TO_PEM
         rc = wc_DerToPemEx(derData, (word32)derLen, NULL, 0, cipherInfo,
             pemType);
         if (rc <= 0) {
@@ -3232,6 +3317,10 @@ static int wp_rsa_encode(wp_RsaEncDecCtx* ctx, OSSL_CORE_BIO* cBio,
             keyLen = pemLen = rc;
             keyData = pemData;
         }
+#else
+        (void)pemType;
+        ok = 0;
+#endif /* WP_DER_TO_PEM */
     }
     if (ok) {
         rc = BIO_write(out, keyData, (int)keyLen);
@@ -4036,7 +4125,7 @@ static int wp_rsa_encode_text(wp_RsaEncDecCtx* ctx, OSSL_CORE_BIO* cBio,
     char* textData = NULL;
     size_t textLen = 0;
     size_t pos = 0;
-    size_t printAmt;
+    size_t printAmt = 0;
     char* expStr;
     int expLen;
 

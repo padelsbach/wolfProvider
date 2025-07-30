@@ -117,11 +117,31 @@
 #ifndef NO_DH
     #define WP_HAVE_DH
 #endif
+#ifdef WOLFSSL_DH_EXTRA
+    #define WP_DH_EXTRA
+#endif
+
 #ifndef NO_RSA
     #define WP_HAVE_RSA
     #if defined(WC_RSA_PSS) && LIBWOLFSSL_VERSION_HEX >= 0x05005000
         #define WOLFSSL_RSA_PSS_ENCODING
     #endif
+#endif
+
+#ifdef WOLFSSL_KEY_GEN
+    #define WP_RSA_KEYGEN
+#endif
+
+#ifdef WOLFSSL_CERT_GEN
+    #define WP_CERT_GEN
+#endif
+
+#if defined(WC_RSA_DIRECT) || defined(WC_RSA_NO_PADDING)
+    #define WP_RSA_DIRECT
+#endif
+
+#ifdef WOLFSSL_DER_TO_PEM
+    #define WP_DER_TO_PEM
 #endif
 
 #ifdef HAVE_ECC

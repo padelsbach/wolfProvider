@@ -618,7 +618,7 @@ static int wp_rsa_sign_pkcs1(wp_RsaSigCtx* ctx, unsigned char* sig,
                 wp_rsa_get_key(ctx->rsa), &ctx->rng);
             PRIVATE_KEY_LOCK();
             wp_unlock(wp_rsa_get_mutex(ctx->rsa));
-            if (rc <= 0) {
+            if (rc < 0) {
                 ok = 0;
             }
         }
@@ -768,7 +768,7 @@ static int wp_rsa_sign_no_pad(wp_RsaSigCtx* ctx, unsigned char* sig,
         }
         if (ok) {
             PRIVATE_KEY_UNLOCK();
-            rc = wc_RsaDirect((byte*)tbs, (word32)tbsLen, sig, &len,
+            rc = wp_RsaInternal((byte*)tbs, (word32)tbsLen, sig, &len,
                 wp_rsa_get_key(ctx->rsa), RSA_PRIVATE_ENCRYPT, &ctx->rng);
             PRIVATE_KEY_LOCK();
             wp_unlock(wp_rsa_get_mutex(ctx->rsa));
@@ -865,7 +865,7 @@ static int wp_rsa_sign_x931(wp_RsaSigCtx* ctx, unsigned char* sig,
         }
         if (ok) {
             PRIVATE_KEY_UNLOCK();
-            rc = wc_RsaDirect(padded, paddedSz, sig, &len,
+            rc = wp_RsaInternal(padded, paddedSz, sig, &len,
                 wp_rsa_get_key(ctx->rsa), RSA_PRIVATE_ENCRYPT, &ctx->rng);
             PRIVATE_KEY_LOCK();
             wp_unlock(wp_rsa_get_mutex(ctx->rsa));
@@ -1147,7 +1147,7 @@ static int wp_rsa_verify_no_pad(wp_RsaSigCtx* ctx, const unsigned char* sig,
     int rc;
     word32 len = (word32)sigLen;
 
-    rc = wc_RsaDirect((byte*)sig, (word32)sigLen, decryptedSig, &len,
+    rc = wp_RsaInternal((byte*)sig, (word32)sigLen, decryptedSig, &len,
         wp_rsa_get_key(ctx->rsa), RSA_PUBLIC_DECRYPT, &ctx->rng);
     if (rc < 0) {
         ok = 0;
@@ -1247,7 +1247,7 @@ static int wp_rsa_verify_x931(wp_RsaSigCtx* ctx, const unsigned char* sig,
     mp_int toMp;
     mp_int nMinusTo;
 
-    rc = wc_RsaDirect((byte*)sig, (word32)sigLen, decryptedSig, &len,
+    rc = wp_RsaInternal((byte*)sig, (word32)sigLen, decryptedSig, &len,
         wp_rsa_get_key(ctx->rsa), RSA_PUBLIC_DECRYPT, &ctx->rng);
     if (rc < 0) {
         ok = 0;

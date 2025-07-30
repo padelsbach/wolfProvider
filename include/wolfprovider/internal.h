@@ -194,5 +194,8 @@ byte wp_ct_byte_mask_eq(byte a, byte b);
 byte wp_ct_byte_mask_ne(byte a, byte b);
 byte wp_ct_int_mask_gte(int a, int b);
 
+int wp_RsaInternal(byte* in, word32 inLen, byte* out, word32* outSz,
+           RsaKey* key, int type, WC_RNG* rng);
+
 #endif /* WP_INTERNAL_H */
 

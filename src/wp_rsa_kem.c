@@ -313,7 +313,7 @@ static int wp_rsasve_generate(wp_RsaKemCtx* ctx, unsigned char* out,
         int rc;
 
         oLen = nLen;
-        rc = wc_RsaDirect(secret, nLen, out, &oLen, rsa, RSA_PUBLIC_ENCRYPT,
+        rc = wp_RsaInternal(secret, nLen, out, &oLen, rsa, RSA_PUBLIC_ENCRYPT,
             &ctx->rng);
         if (rc < 0) {
             OPENSSL_cleanse(secret, nLen);
@@ -410,7 +410,7 @@ static int wp_rsasve_recover(wp_RsaKemCtx* ctx, unsigned char* out,
         int rc;
 
         PRIVATE_KEY_UNLOCK();
-        rc = wc_RsaDirect((byte*)in, (word32)inLen, out, &oLen, rsa,
+        rc = wp_RsaInternal((byte*)in, (word32)inLen, out, &oLen, rsa,
             RSA_PRIVATE_DECRYPT, &ctx->rng);
         PRIVATE_KEY_LOCK();
         if (rc < 0) {
