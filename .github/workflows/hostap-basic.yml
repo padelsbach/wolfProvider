@@ -1,0 +1,191 @@
+name: hostap-uml-tests
+
+# START OF COMMON SECTION
+on:
+  push:
+    branches: [ '*' ] #'master', 'main', 'release/**' ]
+  pull_request:
+    branches: [ '*' ]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+# END OF COMMON SECTION
+
+jobs:
+  build_wolfprovider:
+    uses: ./.github/workflows/build-wolfprovider.yml
+    with:
+      wolfssl_ref: ${{ matrix.wolfssl_ref }}
+      openssl_ref: ${{ matrix.openssl_ref }}
+    strategy:
+      matrix:
+        wolfssl_ref: [ 'master', 'v5.8.0-stable' ]
+        openssl_ref: [ 'openssl-3.5.0' ]
+
+  uml-hwsim:
+    runs-on: ubuntu-24.04
+    needs: build_wolfprovider
+    timeout-minutes: 60
+    strategy:
+      matrix:
+        wolfssl_ref: [ 'v5.8.0-stable' ]
+        openssl_ref: [ 'openssl-3.5.0' ]
+        force_fail: [ 'WOLFPROV_FORCE_FAIL=1', '' ]
+    env:
+      KVER: "6.6.41"
+      KURL: "https://cdn.kernel.org/pub/linux/kernel/v6.x/linux-6.6.41.tar.xz"
+    steps:
+      - name: Checkout wolfProvider
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      # - name: Retrieving wolfProvider from cache
+      #   uses: actions/cache/restore@v4
+      #   id: wolfprov-cache-restore
+      #   with:
+      #     path: |
+      #       wolfssl-install
+      #       wolfprov-install
+      #       openssl-install/lib64
+      #       openssl-install/include
+      #       openssl-install/bin
+      #     key: wolfprov-${{ matrix.wolfssl_ref }}-${{ matrix.openssl_ref }}-${{ github.sha }}
+      #     fail-on-cache-miss: true
+
+      - name: Build wolfprovider
+        run: |
+          OPENSSL_TAG=${{ inputs.openssl_ref }} WOLFSSL_TAG=${{ inputs.wolfssl_ref }} ./scripts/build-wolfprovider.sh --debug
+
+      - name: Install build deps for UML + tests
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential git bc kmod python3 python3-pip python3-venv \
+            libelf-dev libssl-dev flex bison zlib1g-dev libncurses5-dev \
+            libnl-3-dev libnl-genl-3-dev \
+            lcov binutils-dev libpcap-dev libcurl4-openssl-dev libiberty-dev \
+            # libbfd for some tooling
+
+      - name: Fetch hostap (if not vendored)
+        run: |
+          test -d hostap || git clone https://w1.fi/hostap.git
+
+      - name: Cache UML kernel build (entire build tree)
+        id: cache-kernel
+        uses: actions/cache@v4
+        with:
+          path: hostap/tests/hwsim/vm/linux-${{ env.KVER }}
+          key: uml-${{ runner.os }}-linux-${{ env.KVER }}-cfg-${{ hashFiles('hostap/tests/hwsim/vm/kernel-config.uml') }}
+          restore-keys: |
+            uml-${{ runner.os }}-linux-${{ env.KVER }}-
+
+      - name: Prepare kernel tree
+        if: steps.cache-kernel.outputs.cache-hit != 'true'
+        working-directory: hostap/tests/hwsim/vm
+        run: |
+          curl -L "$KURL" -o "linux-${KVER}.tar.xz"
+          tar -xf "linux-${KVER}.tar.xz"
+
+      - name: Build UML kernel (time-travel capable)
+        # Build in the *real* dir, not the symlink
+        working-directory: hostap/tests/hwsim/vm/linux-${{ env.KVER }}
+        run: |
+          # Only refresh .config when it changed to keep incremental builds fast
+          if [ ! -f .config ] || ! cmp -s ../kernel-config.uml .config; then
+            cp ../kernel-config.uml .config
+          fi
+          ARCH=um make -j"$(nproc)"
+          # Optional: show we actually have a built kernel
+          ls -lh vmlinux || true
+
+      - name: Insert environment variables (no heredoc)
+        working-directory: hostap/tests/hwsim
+        run: |
+          set -e
+          source "$GITHUB_WORKSPACE/scripts/env-setup"
+          [ -n "${{ matrix.force_fail }}" ] && export ${{ matrix.force_fail }}
+
+          # Skip if we've already injected
+          if grep -q '^# injected OpenSSL provider env$' start.sh; then
+            echo "start.sh already injected"
+            exit 0
+          fi
+
+          # Pre-quote values safely for shell
+          conf=$(printf %q "$OPENSSL_CONF")
+          mods=$(printf %q "$OPENSSL_MODULES")
+          ldld=$(printf %q "${LD_LIBRARY_PATH:-}")
+          ff=$(printf %q "${WOLFPROV_FORCE_FAIL:-}")
+
+          LOGDIR="${HWSIM_TEST_LOG_DIR:-/tmp/hwsim-test-logs}"
+
+          tmp="$(mktemp)"
+          {
+            printf '#!/usr/bin/env bash\n'
+            printf '# injected OpenSSL provider env\n'
+            printf 'export OPENSSL_CONF=%s\n' "$conf"
+            printf 'export OPENSSL_MODULES=%s\n' "$mods"
+            [ -n "${LD_LIBRARY_PATH:-}" ] && printf 'export LD_LIBRARY_PATH=%s\n' "$ldld"
+            [ -n "${WOLFPROV_FORCE_FAIL:-}" ] && printf 'export WOLFPROV_FORCE_FAIL=%s\n' "$ff"
+            printf '\n'
+            printf 'sudo() { command sudo env OPENSSL_CONF=%s OPENSSL_MODULES=%s LD_LIBRARY_PATH=%s WOLFPROV_FORCE_FAIL=%s "$@"; }\n' "$conf" "$mods" "$ldld" "$ff"
+            printf '\n'
+            # show exactly what the VM sees + list providers
+            printf 'echo "[VM] OPENSSL_CONF=$OPENSSL_CONF" >&2\n'
+            printf 'echo "[VM] OPENSSL_MODULES=$OPENSSL_MODULES" >&2\n'
+            printf 'openssl list -providers -verbose 2>&1 | tee "$LOGDIR/openssl_providers.txt"\n'
+            printf '\n'
+            cat start.sh
+          } > "$tmp"
+          install -m 0755 "$tmp" start.sh
+          sed -n '1,20p' start.sh
+
+      - name: Sanity check
+        run: |
+          openssl list -providers -verbose || true
+
+      - name: Build hostap test binaries
+        working-directory: hostap/tests/hwsim
+        run: ./build.sh
+        # hwsim test build instructions and quick-run example are in example-setup docs. :contentReference[oaicite:3]{index=3}
+
+      - name: Smoke tests inside UML
+        working-directory: hostap/tests/hwsim/vm
+        env:
+          # Tell vm-run.sh where the kernel is
+          KERNEL: ${{ github.workspace }}/hostap/tests/hwsim/vm/linux-${{ env.KVER }}/linux
+        run: |
+          # Run a tiny subset first; you can pass patterns or test names
+          timeout 1m ./vm-run.sh --timeout 600 -- \
+            ap_open ap_wpa2_psk p2p_device_discovery || true
+          TEST_RESULT=${PIPESTATUS[0]}
+          echo "Test result: $TEST_RESULT"
+
+      - name: TLS/EAP pack (will fail if provider blocks TLS)
+        working-directory: hostap/tests/hwsim/vm
+        env:
+          KERNEL: ${{ github.workspace }}/hostap/tests/hwsim/vm/linux-${{ env.KVER }}/linux
+        run: |
+          timeout 5m ./vm-run.sh --timeout 1200 -- \
+            ap_wpa2_eap_tls \
+            ap_wpa2_eap_peap_eap_mschapv2 \
+            ap_wpa2_eap_ttls_mschapv2 || true
+          TEST_RESULT=${PIPESTATUS[0]}
+          echo "Test result: $TEST_RESULT"
+          $GITHUB_WORKSPACE/.github/scripts/check-workflow-result.sh $TEST_RESULT ${{ matrix.force_fail }} hostap
+
+      - name: Archive logs
+        if: always()
+        run: |
+          mkdir -p artifacts
+          cp -a /tmp/hwsim-test-logs/* artifacts/ || true
+        continue-on-error: true
+
+      - name: Upload logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hwsim-logs-${{ matrix.wolfssl_ref }}-${{ matrix.openssl_ref }}-${{ matrix.force_fail }}
+          path: artifacts
