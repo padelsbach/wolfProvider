@@ -1,0 +1,13 @@
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+libdir=@libdir@
+includedir=@includedir@
+
+Name: wolfprov
+Description: wolfProvider - OpenSSL 3.0 Provider for wolfSSL
+Version: @VERSION@
+URL: https://www.wolfssl.com/
+Requires: 
+Libs: -L${libdir} -lwolfprov
+Libs.private: -lwolfssl -ldl -lm
+Cflags: -I${includedir} 

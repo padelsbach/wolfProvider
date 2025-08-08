@@ -14,10 +14,14 @@ AM_CPPFLAGS = -I$(top_srcdir)/include
 
 lib_LTLIBRARIES = libwolfprov.la
 
+# pkg-config file
+pkgconfig_DATA = wolfprov.pc
+
 EXTRA_DIST+=ChangeLog.md
 EXTRA_DIST+=README.md
 EXTRA_DIST+=IDE
 EXTRA_DIST+=examples
+EXTRA_DIST+=wolfprov.pc.in
 
 include src/include.am
 include include/include.am

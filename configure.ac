@@ -147,6 +147,7 @@ CREATE_HEX_VERSION
 
 AC_CONFIG_FILES([Makefile
         include/wolfprovider/version.h
+        wolfprov.pc
         ])
 AC_OUTPUT
 
