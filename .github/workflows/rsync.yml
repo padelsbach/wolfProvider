@@ -22,6 +22,10 @@ jobs:
 
   test_rsync:
     runs-on: ubuntu-22.04
+    container:
+      image: debian:bookworm
+      env:
+        DEBIAN_FRONTEND: noninteractive
     needs: build_wolfprovider
     timeout-minutes: 15
     strategy:
