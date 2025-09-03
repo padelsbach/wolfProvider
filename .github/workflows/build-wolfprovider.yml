@@ -18,6 +18,10 @@ jobs:
   build_wolfprovider_common:
     name: Build wolfProvider
     runs-on: ubuntu-22.04
+    container:
+      image: debian:bookworm
+      env:
+        DEBIAN_FRONTEND: noninteractive
     timeout-minutes: 20
     outputs:
       cache_key: wolfprov-${{ inputs.wolfssl_ref }}-${{ inputs.openssl_ref }}-${{ github.sha }}
