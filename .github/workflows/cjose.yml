@@ -80,7 +80,13 @@ jobs:
 
       - name: Build cjose
         working-directory: cjose
+        shell: bash
         run: |
+          # Set up the environment for wolfProvider
+          source $GITHUB_WORKSPACE/scripts/env-setup
+          export LDFLAGS="-L${OPENSSL_INSTALL}/lib64"
+          export CPPFLAGS="-I${OPENSSL_INSTALL}/include"
+
           # Configure with OpenSSL
           ./configure CFLAGS="-Wno-error=deprecated-declarations" --with-openssl=$GITHUB_WORKSPACE/openssl-install
 
@@ -91,8 +97,6 @@ jobs:
         working-directory: cjose
         shell: bash
         run: |
-          # Set up the environment for wolfProvider
-          source $GITHUB_WORKSPACE/scripts/env-setup
           export ${{ matrix.force_fail }}
 
           # Run tests

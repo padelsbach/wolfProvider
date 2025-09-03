@@ -78,7 +78,13 @@ jobs:
 
       - name: Build iperf
         working-directory: iperf
+        shell: bash
         run: |
+          # Set up the environment for wolfProvider
+          source $GITHUB_WORKSPACE/scripts/env-setup
+          export LDFLAGS="-L${OPENSSL_INSTALL}/lib64"
+          export CPPFLAGS="-I${OPENSSL_INSTALL}/include"
+
           # Configure with OpenSSL
           ./configure --with-openssl=$GITHUB_WORKSPACE/openssl-install
 
@@ -100,9 +106,8 @@ jobs:
 
       - name: Run tests
         working-directory: iperf
+        shell: bash
         run: |
-          # Set up the environment for wolfProvider
-          source $GITHUB_WORKSPACE/scripts/env-setup
           export ${{ matrix.force_fail }}
 
           # Test variables for iperf
