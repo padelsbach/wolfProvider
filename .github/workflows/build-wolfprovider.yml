@@ -30,7 +30,7 @@ jobs:
         run: |
           apt-get update
           apt-get install -y curl jq build-essential autoconf automake libtool \
-              pkg-config gcc make ca-certificates git
+              pkg-config gcc make ca-certificates git sudo
 
       - name: Checkout wolfProvider
         uses: actions/checkout@v4
