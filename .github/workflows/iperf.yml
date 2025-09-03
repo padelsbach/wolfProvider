@@ -65,8 +65,9 @@ jobs:
 
       - name: Install dependencies
         run: |
+          export DEBIAN_FRONTEND=noninteractive
           sudo apt-get update
-          sudo apt-get install build-essential autoconf libtool pkg-config clang libc++-dev
+          sudo apt-get install -y build-essential autoconf libtool pkg-config clang libc++-dev
 
       - name: Checkout iperf
         uses: actions/checkout@v4

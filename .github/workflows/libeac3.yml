@@ -66,6 +66,7 @@ jobs:
 
       - name: Install libeac3 dependencies
         run: |
+          export DEBIAN_FRONTEND=noninteractive
           sudo apt-get update
           sudo apt-get install -y autoconf automake libtool libc6 help2man gengetopt pkg-config m4 libeac3
 

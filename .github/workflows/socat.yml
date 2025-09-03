@@ -63,6 +63,7 @@ jobs:
 
       - name: Install dependencies
         run: |
+          export DEBIAN_FRONTEND=noninteractive
           sudo apt-get update
           sudo apt-get install build-essential autoconf libtool pkg-config clang libc++-dev
 

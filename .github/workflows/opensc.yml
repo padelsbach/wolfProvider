@@ -64,6 +64,7 @@ jobs:
 
       - name: Install OpenSC dependencies
         run: |
+          export DEBIAN_FRONTEND=noninteractive
           sudo apt-get update
           sudo apt-get install -y \
             autotools-dev libtool automake autoconf make pkg-config \

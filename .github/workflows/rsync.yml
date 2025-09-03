@@ -63,6 +63,7 @@ jobs:
 
       - name: Install rsync dependencies
         run: |
+          export DEBIAN_FRONTEND=noninteractive
           sudo apt-get update
           sudo apt-get install -y gcc g++ gawk autoconf automake python3-cmarkgfm \
             acl libacl1-dev attr libattr1-dev libxxhash-dev \

@@ -94,6 +94,7 @@ jobs:
 
       - name: Build and test bind9 with wolfProvider
         working-directory: bind9
+        shell: bash
         run: |
           # Set up the environment for wolfProvider
           source $GITHUB_WORKSPACE/scripts/env-setup

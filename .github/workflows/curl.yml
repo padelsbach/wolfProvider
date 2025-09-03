@@ -68,8 +68,9 @@ jobs:
 
       - name: Install dependencies
         run: |
+          export DEBIAN_FRONTEND=noninteractive
           sudo apt-get update
-          sudo apt-get install nghttp2 libpsl5 libpsl-dev python3-impacket
+          sudo apt-get install -y nghttp2 libpsl5 libpsl-dev python3-impacket
 
       - name: Build curl
         uses: wolfSSL/actions-build-autotools-project@v1

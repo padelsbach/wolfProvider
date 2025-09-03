@@ -66,6 +66,7 @@ jobs:
 
       - name: Install tpm2-tools test dependencies
         run: |
+          export DEBIAN_FRONTEND=noninteractive
           sudo apt-get update
           sudo apt-get install -y git sudo autoconf expect vim dbus vim-common \
           autoconf-archive python3 python3-yaml python3-pip libefivar-dev \
