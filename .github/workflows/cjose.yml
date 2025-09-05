@@ -47,11 +47,11 @@ jobs:
           - wolfssl_ref: 'master'
             replace_default: true
     steps:
-      - name: Install sudo (Docker only)
+      - name: Install dependencies (Docker only)
         if: ${{ matrix.replace_default }}
         run: |
           apt-get update
-          apt-get install -y sudo
+          apt-get install -y sudo curl jq
 
       - name: Checkout wolfProvider
         uses: actions/checkout@v4
