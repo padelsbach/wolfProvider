@@ -30,10 +30,9 @@ jobs:
 
   test_cjose:
     runs-on: ubuntu-22.04
-    container:
-      image: debian:bookworm
-      env:
-        DEBIAN_FRONTEND: noninteractive
+    container: ${{ matrix.replace_default && 'debian:bookworm' || null }}
+    env:
+      DEBIAN_FRONTEND: ${{ matrix.replace_default && 'noninteractive' || '' }}
     needs: build_wolfprovider
     # This should be a safe limit for the tests to run.
     timeout-minutes: 20
@@ -48,7 +47,8 @@ jobs:
           - wolfssl_ref: 'master'
             replace_default: true
     steps:
-      - name: Install sudo
+      - name: Install sudo (Docker only)
+        if: ${{ matrix.replace_default }}
         run: |
           apt-get update
           apt-get install -y sudo
