@@ -18,10 +18,12 @@ jobs:
     with:
       wolfssl_ref: ${{ matrix.wolfssl_ref }}
       openssl_ref: ${{ matrix.openssl_ref }}
+      replace_default: ${{ matrix.replace_default || false }}
     strategy:
       matrix:
         wolfssl_ref: [ 'master', 'v5.8.0-stable' ]
         openssl_ref: [ 'openssl-3.5.0' ]
+        replace_default: [ false, true ]
 
   test_bind:
     runs-on: ubuntu-22.04
@@ -38,6 +40,7 @@ jobs:
         bind_ref: [ 'v9.18.28' ]
         wolfssl_ref: [ 'master', 'v5.8.0-stable' ]
         openssl_ref: [ 'openssl-3.5.0' ]
+        replace_default: [ false, true ]
         force_fail: ['WOLFPROV_FORCE_FAIL=1', '']
     steps:
       - name: Install sudo
@@ -60,8 +63,9 @@ jobs:
             openssl-install/lib64
             openssl-install/include
             openssl-install/bin
+            ${{ matrix.replace_default && 'libdefault-stub-install' || '' }}
 
-          key: wolfprov-${{ matrix.wolfssl_ref }}-${{ matrix.openssl_ref }}-${{ github.sha }}
+          key: wolfprov${{ matrix.replace_default && '-replace-default' || '' }}-${{ matrix.wolfssl_ref }}-${{ matrix.openssl_ref }}-${{ github.sha }}
           fail-on-cache-miss: true
 
       - name: Install bind9 test dependencies
