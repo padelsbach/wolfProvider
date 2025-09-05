@@ -38,7 +38,7 @@ jobs:
     timeout-minutes: 20
     strategy:
       matrix:
-        cjose_ref: [ 'master', 'v0.6.2.1' ]
+        cjose_ref: [ 'v0.6.2.1' ]
         wolfssl_ref: [ 'master', 'v5.8.0-stable' ]
         openssl_ref: [ 'openssl-3.5.0' ]
         force_fail: [ 'WOLFPROV_FORCE_FAIL=1', '' ]
