@@ -24,6 +24,9 @@ jobs:
         wolfssl_ref: [ 'master', 'v5.8.0-stable' ]
         openssl_ref: [ 'openssl-3.5.0' ]
         replace_default: [ false, true ]
+        exclude:
+          - wolfssl_ref: 'master'
+            replace_default: true
 
   test_cjose:
     runs-on: ubuntu-22.04
@@ -41,6 +44,9 @@ jobs:
         openssl_ref: [ 'openssl-3.5.0' ]
         force_fail: [ 'WOLFPROV_FORCE_FAIL=1', '' ]
         replace_default: [ false, true ]
+        exclude:
+          - wolfssl_ref: 'master'
+            replace_default: true
     steps:
       - name: Install sudo
         run: |
