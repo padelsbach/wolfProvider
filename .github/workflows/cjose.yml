@@ -58,6 +58,22 @@ jobs:
         with:
           fetch-depth: 1
 
+      - name: Get OpenSSL commit hash
+        id: openssl-ref
+        run: |
+          sha=$(./scripts/resolve-ref.sh "${{ matrix.openssl_ref }}" "openssl/openssl")
+          echo "ref=$sha" >> "$GITHUB_OUTPUT"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Get WolfSSL commit hash
+        id: wolfssl-ref
+        run: |
+          sha=$(./scripts/resolve-ref.sh "${{ matrix.wolfssl_ref }}" "wolfssl/wolfssl")
+          echo "ref=$sha" >> "$GITHUB_OUTPUT"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Retrieving wolfProvider from cache
         uses: actions/cache/restore@v4
         id: wolfprov-cache-restore
@@ -70,7 +86,7 @@ jobs:
             openssl-install/bin
             ${{ matrix.replace_default && 'libdefault-stub-install' || '' }}
 
-          key: ${{ needs.build_wolfprovider.outputs.cache_key }}
+          key: wolfprov${{ matrix.replace_default && '-replace-default' || '' }}-${{ steps.wolfssl-ref.outputs.ref }}-${{ steps.openssl-ref.outputs.ref }}-${{ github.sha }}
           fail-on-cache-miss: true
 
       - name: Install cjose dependencies
