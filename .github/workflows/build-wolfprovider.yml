@@ -27,12 +27,6 @@ jobs:
     outputs:
       cache_key: wolfprov${{ inputs.replace_default && '-replace-default' || '' }}-${{ inputs.wolfssl_ref }}-${{ inputs.openssl_ref }}-${{ github.sha }}
     steps:
-      - name: Install dependencies
-        run: |
-          apt-get update
-          apt-get install -y curl jq build-essential autoconf automake libtool \
-              pkg-config gcc make ca-certificates git sudo
-
       - name: Checkout wolfProvider
         uses: actions/checkout@v4
         with:
