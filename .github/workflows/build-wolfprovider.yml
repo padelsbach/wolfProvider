@@ -25,7 +25,7 @@ jobs:
     runs-on: ubuntu-22.04
     timeout-minutes: 20
     outputs:
-      cache_key: wolfprov${{ inputs.replace_default && '-replace-default' || '' }}-${{ inputs.wolfssl_ref }}-${{ inputs.openssl_ref }}-${{ github.sha }}
+      cache_key: wolfprov${{ inputs.replace_default && '-replace-default' || '' }}-${{ steps.wolfssl-ref.outputs.ref }}-${{ steps.openssl-ref.outputs.ref }}-${{ github.sha }}
     steps:
       - name: Checkout wolfProvider
         uses: actions/checkout@v4
@@ -93,7 +93,7 @@ jobs:
             openssl-install/include
             openssl-install/bin
             ${{ inputs.replace_default && 'libdefault-stub-install' || '' }}
-          key: wolfprov${{ inputs.replace_default && '-replace-default' || '' }}-${{ inputs.wolfssl_ref }}-${{ inputs.openssl_ref }}-${{ github.sha }}
+          key: wolfprov${{ inputs.replace_default && '-replace-default' || '' }}-${{ steps.wolfssl-ref.outputs.ref }}-${{ steps.openssl-ref.outputs.ref }}-${{ github.sha }}
 
       # If openssl cache miss, save it to the cache
       - name: Save OpenSSL into cache

@@ -70,7 +70,7 @@ jobs:
             openssl-install/bin
             ${{ matrix.replace_default && 'libdefault-stub-install' || '' }}
 
-          key: wolfprov${{ matrix.replace_default && '-replace-default' || '' }}-${{ matrix.wolfssl_ref }}-${{ matrix.openssl_ref }}-${{ github.sha }}
+          key: ${{ needs.build_wolfprovider.outputs.cache_key }}
           fail-on-cache-miss: true
 
       - name: Install cjose dependencies
