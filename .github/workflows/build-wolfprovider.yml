@@ -73,7 +73,12 @@ jobs:
 
       - name: Build wolfProvider
         run: |
-          OPENSSL_TAG=${{ inputs.openssl_ref }} WOLFSSL_TAG=${{ inputs.wolfssl_ref }} ./scripts/build-wolfprovider.sh ${{ inputs.replace_default && '--replace-default' || '' }}
+          # Clean if there's a build mode mismatch
+          if ! OPENSSL_TAG=${{ inputs.openssl_ref }} WOLFSSL_TAG=${{ inputs.wolfssl_ref }} ./scripts/build-wolfprovider.sh ${{ inputs.replace_default && '--replace-default' || '' }}; then
+            echo "Build failed, attempting distclean and rebuild..."
+            ./scripts/build-wolfprovider.sh --distclean
+            OPENSSL_TAG=${{ inputs.openssl_ref }} WOLFSSL_TAG=${{ inputs.wolfssl_ref }} ./scripts/build-wolfprovider.sh ${{ inputs.replace_default && '--replace-default' || '' }}
+          fi
 
       # Save the wolfProvider outputs for use by the parent jobs.
       # Note that we don't try to restore since it will likely always 
