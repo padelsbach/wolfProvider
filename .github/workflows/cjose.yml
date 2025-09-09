@@ -3,7 +3,7 @@ name: cjose Tests
 # START OF COMMON SECTION
 on:
   push:
-    branches: [ 'master', 'main', 'release/**' ]
+    branches: [ '*' ]
   pull_request:
     branches: [ '*' ]
 
@@ -68,11 +68,9 @@ jobs:
             openssl-install/lib64
             openssl-install/include
             openssl-install/bin
-            ${{ matrix.replace_default && 'libdefault-stub-install' || '' }}
+            ${{ matrix.replace_default && 'libdefault-stub-install' }}
 
-          key: wolfprov${{ matrix.replace_default && '-replace-default' || '' }}-${{ matrix.wolfssl_ref }}-${{ matrix.openssl_ref }}-${{ github.sha }}
-          restore-keys: |
-            wolfprov${{ matrix.replace_default && '-replace-default' || '' }}-${{ matrix.wolfssl_ref }}-${{ matrix.openssl_ref }}-
+          key: wolfprov${{ matrix.replace_default && '-replace-default' }}-${{ matrix.wolfssl_ref }}-${{ matrix.openssl_ref }}-${{ github.sha }}
           fail-on-cache-miss: true
 
       - name: Install cjose dependencies

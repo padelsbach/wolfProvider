@@ -25,7 +25,7 @@ jobs:
     runs-on: ubuntu-22.04
     timeout-minutes: 20
     outputs:
-      cache_key: wolfprov${{ inputs.replace_default && '-replace-default' || '' }}-${{ inputs.wolfssl_ref }}-${{ inputs.openssl_ref }}-${{ github.sha }}
+      cache_key: wolfprov${{ inputs.replace_default && '-replace-default' }}-${{ inputs.wolfssl_ref }}-${{ inputs.openssl_ref }}-${{ github.sha }}
     steps:
       - name: Checkout wolfProvider
         uses: actions/checkout@v4
@@ -57,8 +57,8 @@ jobs:
         with:
           path: |
             openssl-install
-            ${{ inputs.replace_default && 'libdefault-stub-install' || '' }}
-          key: ossl${{ inputs.replace_default && '-replace-default' || '' }}-depends-${{ steps.openssl-ref.outputs.ref }}
+            ${{ inputs.replace_default && 'libdefault-stub-install' }}
+          key: ossl${{ inputs.replace_default && '-replace-default' }}-depends-${{ steps.openssl-ref.outputs.ref }}
           lookup-only: false
 
       # Look for a cached version of WolfSSL
@@ -80,6 +80,11 @@ jobs:
             OPENSSL_TAG=${{ inputs.openssl_ref }} WOLFSSL_TAG=${{ inputs.wolfssl_ref }} ./scripts/build-wolfprovider.sh ${{ inputs.replace_default && '--replace-default' || '' }}
           fi
 
+      - name: Check paths before saving to cache
+        run: |
+          ls -al $GITHUB_WORKSPACE
+          ls -al $GITHUB_WORKSPACE/openssl-install
+
       # Save the wolfProvider outputs for use by the parent jobs.
       # Note that we don't try to restore since it will likely always 
       # be a cache miss.
@@ -92,8 +97,8 @@ jobs:
             openssl-install/lib64
             openssl-install/include
             openssl-install/bin
-            ${{ inputs.replace_default && 'libdefault-stub-install' || '' }}
-          key: wolfprov${{ inputs.replace_default && '-replace-default' || '' }}-${{ inputs.wolfssl_ref }}-${{ inputs.openssl_ref }}-${{ github.sha }}
+            ${{ inputs.replace_default && 'libdefault-stub-install' }}
+          key: wolfprov${{ inputs.replace_default && '-replace-default' }}-${{ inputs.wolfssl_ref }}-${{ inputs.openssl_ref }}-${{ github.sha }}
 
       # If openssl cache miss, save it to the cache
       - name: Save OpenSSL into cache
@@ -102,8 +107,8 @@ jobs:
         with: 
           path: |
             openssl-install
-            ${{ inputs.replace_default && 'libdefault-stub-install' || '' }}
-          key: ossl${{ inputs.replace_default && '-replace-default' || '' }}-depends-${{ steps.openssl-ref.outputs.ref }}
+            ${{ inputs.replace_default && 'libdefault-stub-install' }}
+          key: ossl${{ inputs.replace_default && '-replace-default' }}-depends-${{ steps.openssl-ref.outputs.ref }}
 
       - name: Save WolfSSL into cache
         if: steps.wolfssl-cache.outputs.cache-hit != 'true'
