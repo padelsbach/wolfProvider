@@ -97,14 +97,22 @@ jobs:
           echo "Artifacts to upload:"
           ls -la /tmp/wolfprov-packages || true
 
-      - name: Upload package artifacts
+      - name: Upload wolfSSL packages
         uses: actions/upload-artifact@v4
         with:
-          name: wolfprovider-debian-packages
+          name: wolfssl-debian-packages-${{ github.sha }}
           path: |
-            /tmp/wolfprov-packages/*.deb
-            /tmp/wolfprov-packages/*.dsc
-            /tmp/wolfprov-packages/*.tar.gz
+            /tmp/wolfprov-packages/*wolfssl*.deb
+          retention-days: 7
+
+      - name: Upload OpenSSL/wolfProvider packages
+        uses: actions/upload-artifact@v4
+        with:
+          name: openssl-wolfprov-debian-packages-${{ github.sha }}
+          path: |
+            /tmp/wolfprov-packages/*openssl*.deb
+            /tmp/wolfprov-packages/*libssl3*.deb
+            /tmp/wolfprov-packages/*libwolfprov*.deb
           retention-days: 7
 
       - name: Print errors

@@ -50,7 +50,7 @@ jobs:
       - name: Set up environment
         run: |
           apt-get update
-          apt-get install -y git sudo build-essential autoconf automake \ 
+          apt-get install -y git sudo build-essential autoconf automake \
             libtool pkg-config libjansson-dev check ca-certificates dpkg-dev
 
       - name: Checkout wolfProvider
@@ -58,39 +58,46 @@ jobs:
         with:
           fetch-depth: 1
 
-      - name: Download wolfprovider .deb artifact
+      - name: Download wolfSSL packages
         uses: actions/download-artifact@v4
         with:
-          name: wolfprovider-debian-packages
-          path: /tmp/artifacts
+          name: wolfssl-debian-packages-${{ github.sha }}
+          path: /tmp/wolfssl-artifacts
+
+      - name: Download OpenSSL/wolfProvider packages
+        uses: actions/download-artifact@v4
+        with:
+          name: openssl-wolfprov-debian-packages-${{ github.sha }}
+          path: /tmp/openssl-wolfprov-artifacts
 
       - name: Install wolfSSL/OpenSSL/wolfprov packages
         run: |
           set -e
-          cd /tmp/artifacts
-          echo "Artifacts available:"
-          ls -la || true
+          echo "WolfSSL artifacts:"
+          ls -la /tmp/wolfssl-artifacts || true
+          echo "OpenSSL/wolfProvider artifacts:"
+          ls -la /tmp/openssl-wolfprov-artifacts || true
 
           # Install wolfSSL first
-          wolfssl_debs=$(ls -1 *libwolfssl*\.deb 2>/dev/null || true)
+          wolfssl_debs=$(ls -1 /tmp/wolfssl-artifacts/*.deb 2>/dev/null || true)
           if [ -n "$wolfssl_debs" ]; then
-            echo "Installing libwolfssl packages: $wolfssl_debs"
+            echo "Installing wolfSSL packages: $wolfssl_debs"
             apt install -y $wolfssl_debs
           fi
 
           # Install OpenSSL packages (openssl, libssl3)
-          openssl_debs=$(ls -1 *openssl*\.deb 2>/dev/null || true)
-          libssl3_debs=$(ls -1 *libssl3*\.deb 2>/dev/null || true)
+          openssl_debs=$(ls -1 /tmp/openssl-wolfprov-artifacts/*openssl*.deb 2>/dev/null || true)
+          libssl3_debs=$(ls -1 /tmp/openssl-wolfprov-artifacts/*libssl3*.deb 2>/dev/null || true)
           if [ -n "$openssl_debs$libssl3_debs" ]; then
             echo "Installing OpenSSL packages: $openssl_debs $libssl3_debs"
             apt install -y $openssl_debs $libssl3_debs || apt install -y $libssl3_debs $openssl_debs
           fi
 
           # Install wolfProvider package
-          wolfprov_deb=$(ls -1 *libwolfprov*\.deb 2>/dev/null | head -n1 || true)
+          wolfprov_deb=$(ls -1 /tmp/openssl-wolfprov-artifacts/*libwolfprov*.deb 2>/dev/null | head -n1 || true)
           if [ -z "$wolfprov_deb" ]; then
             echo "ERROR: libwolfprov package not found in artifacts"
-            ls -la
+            ls -la /tmp/openssl-wolfprov-artifacts
             exit 1
           fi
           echo "Installing: $wolfprov_deb"
