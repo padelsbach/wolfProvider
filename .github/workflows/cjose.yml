@@ -101,7 +101,7 @@ jobs:
             exit 1
           fi
           echo "Installing: $wolfprov_deb"
-          apt install -y ./"$wolfprov_deb"
+          apt install -y "$wolfprov_deb"
 
       - name: Download cjose
         uses: actions/checkout@v4
