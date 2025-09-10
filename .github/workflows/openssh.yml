@@ -4,7 +4,7 @@ name: openssh Tests
 on:
   push:
     branches: [ 'master', 'main', 'release/**' ]
-  pull_request:
+  #pull_request:
     #branches: [ '*' ]
 
 concurrency:

@@ -2,7 +2,7 @@ name: libfido2 Tests
 on:
   push:
     branches: [ 'master', 'main', 'release/**' ]
-  pull_request:
+  #pull_request:
     #branches: [ '*' ]
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
