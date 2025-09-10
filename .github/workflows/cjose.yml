@@ -24,8 +24,9 @@ jobs:
       wolfssl_ref: ${{ matrix.wolfssl_ref }}
       openssl_ref: ${{ matrix.openssl_ref }}
     strategy:
-      matrix:
-        wolfssl_ref: [ 'master', 'v5.8.0-stable' ]
+      matrix: 
+        # Test 5.8.2 since our .deb is based on that version
+        wolfssl_ref: [ 'v5.8.2-stable' ]
         openssl_ref: [ 'openssl-3.5.0' ]
 
   test_cjose:
@@ -40,8 +41,9 @@ jobs:
         DEBIAN_FRONTEND: noninteractive
     strategy:
       matrix:
-        cjose_ref: [ 'master', 'v0.6.2.1' ]
-        wolfssl_ref: [ 'master', 'v5.8.0-stable' ]
+        # Dont test osp master since it might be unstable
+        cjose_ref: [ 'v0.6.2.1' ]
+        wolfssl_ref: [ 'v5.8.2-stable' ]
         openssl_ref: [ 'openssl-3.5.0' ]
         force_fail: [ 'WOLFPROV_FORCE_FAIL=1', '' ]
     steps:
