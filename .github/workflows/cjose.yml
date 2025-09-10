@@ -93,15 +93,17 @@ jobs:
             apt install -y $openssl_debs $libssl3_debs || apt install -y $libssl3_debs $openssl_debs
           fi
 
-          # Install wolfProvider package
-          wolfprov_deb=$(ls -1 /tmp/openssl-wolfprov-artifacts/*libwolfprov*.deb 2>/dev/null | head -n1 || true)
-          if [ -z "$wolfprov_deb" ]; then
-            echo "ERROR: libwolfprov package not found in artifacts"
+          # Install wolfProvider main package only (no dev/debug needed for testing)
+          wolfprov_main=$(ls -1 /tmp/openssl-wolfprov-artifacts/libwolfprov_[0-9]*.deb 2>/dev/null | head -n1 || true)
+          
+          if [ -z "$wolfprov_main" ]; then
+            echo "ERROR: libwolfprov main package not found in artifacts"
             ls -la /tmp/openssl-wolfprov-artifacts
             exit 1
           fi
-          echo "Installing: $wolfprov_deb"
-          apt install -y "$wolfprov_deb"
+          
+          echo "Installing wolfProvider main package: $wolfprov_main"
+          apt install -y "$wolfprov_main"
 
       - name: Download cjose
         uses: actions/checkout@v4
