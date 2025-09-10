@@ -30,7 +30,6 @@ jobs:
   test_ppp:
     if: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-22.04
-    needs: build_wolfprovider
     timeout-minutes: 15
     strategy:
       matrix:

@@ -34,6 +34,10 @@ jobs:
     needs: build_wolfprovider
     # This should be a safe limit for the tests to run.
     timeout-minutes: 20
+    container:
+      image: debian:bookworm
+      env:
+        DEBIAN_FRONTEND: noninteractive
     strategy:
       matrix:
         cjose_ref: [ 'master', 'v0.6.2.1' ]
@@ -41,28 +45,54 @@ jobs:
         openssl_ref: [ 'openssl-3.5.0' ]
         force_fail: [ 'WOLFPROV_FORCE_FAIL=1', '' ]
     steps:
+      - name: Set up environment
+        run: |
+          apt-get update
+          apt-get install -y git sudo build-essential autoconf automake \ 
+            libtool pkg-config libjansson-dev check ca-certificates dpkg-dev
+
       - name: Checkout wolfProvider
         uses: actions/checkout@v4
         with:
           fetch-depth: 1
 
-      - name: Retrieving wolfProvider from cache
-        uses: actions/cache/restore@v4
-        id: wolfprov-cache-restore
+      - name: Download wolfprovider .deb artifact
+        uses: actions/download-artifact@v4
         with:
-          path: |
-            wolfssl-install
-            wolfprov-install
-            openssl-install/lib64
-            openssl-install/include
-            openssl-install/bin
+          name: wolfprovider-debian-packages
+          path: /tmp/artifacts
 
-          key: wolfprov-${{ matrix.wolfssl_ref }}-${{ matrix.openssl_ref }}-${{ github.sha }}
-          fail-on-cache-miss: true
-
-      - name: Install cjose dependencies
+      - name: Install wolfSSL/OpenSSL/wolfprov packages
         run: |
-          sudo apt-get install -y libjansson-dev check
+          set -e
+          cd /tmp/artifacts
+          echo "Artifacts available:"
+          ls -la || true
+
+          # Install wolfSSL first
+          wolfssl_debs=$(ls -1 *libwolfssl*\.deb 2>/dev/null || true)
+          if [ -n "$wolfssl_debs" ]; then
+            echo "Installing libwolfssl packages: $wolfssl_debs"
+            apt install -y $wolfssl_debs
+          fi
+
+          # Install OpenSSL packages (openssl, libssl3)
+          openssl_debs=$(ls -1 *openssl*\.deb 2>/dev/null || true)
+          libssl3_debs=$(ls -1 *libssl3*\.deb 2>/dev/null || true)
+          if [ -n "$openssl_debs$libssl3_debs" ]; then
+            echo "Installing OpenSSL packages: $openssl_debs $libssl3_debs"
+            apt install -y $openssl_debs $libssl3_debs || apt install -y $libssl3_debs $openssl_debs
+          fi
+
+          # Install wolfProvider package
+          wolfprov_deb=$(ls -1 *libwolfprov*\.deb 2>/dev/null | head -n1 || true)
+          if [ -z "$wolfprov_deb" ]; then
+            echo "ERROR: libwolfprov package not found in artifacts"
+            ls -la
+            exit 1
+          fi
+          echo "Installing: $wolfprov_deb"
+          apt install -y ./"$wolfprov_deb"
 
       - name: Download cjose
         uses: actions/checkout@v4

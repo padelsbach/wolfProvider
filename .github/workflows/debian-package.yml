@@ -7,6 +7,12 @@ on:
     branches: [ '*' ]
 
 jobs:
+  build_wolfprovider:
+    uses: ./.github/workflows/build-wolfprovider.yml
+    with:
+      wolfssl_ref: master
+      openssl_ref: openssl-3.5.0
+
   libwolfprov-standalone:
     runs-on: ubuntu-22.04
     # Important: use Debian Bookworm for compatibility
@@ -14,6 +20,7 @@ jobs:
       image: debian:bookworm   # or debian:bookworm-slim
       env:
         DEBIAN_FRONTEND: noninteractive
+    needs: build_wolfprovider
     steps:
     - name: Set up environment
       run: |
@@ -58,29 +65,31 @@ jobs:
         git remote add upstream https://github.com/wolfSSL/wolfProvider.git || true
         git fetch upstream --tags --no-recurse-submodules
 
-    - name: Install wolfssl debian package
-      run: |
-        mkdir -p "/tmp/wolfssl-pkg"
-        cd "/tmp/wolfssl-pkg"
-        
-        # Install wolfssl packages
-        chmod +x $GITHUB_WORKSPACE/debian/install-wolfssl.sh
-        $GITHUB_WORKSPACE/debian/install-wolfssl.sh \
-          $GITHUB_WORKSPACE/.github/packages/debian-wolfssl.tar.gz \
-          "/tmp/wolfssl-pkg"
+    - name: Download wolfprovider package artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: wolfprovider-debian-packages
+        path: /tmp/artifacts
 
-        # Create wolfprov-packages directory and move wolfssl files there
+    - name: Install wolfSSL debian packages from artifact
+      run: |
+        set -e
+        echo "Artifacts available:"
+        ls -la /tmp/artifacts || true
+
+        # Install wolfSSL runtime and headers (from our artifact, not apt)
+        wolfssl_debs=$(ls -1 /tmp/artifacts/*libwolfssl*\.deb 2>/dev/null || true)
+        if [ -n "$wolfssl_debs" ]; then
+          echo "Installing wolfSSL packages: $wolfssl_debs"
+          apt install -y $wolfssl_debs
+        else
+          echo "ERROR: No wolfSSL .deb files found in artifact"
+          exit 1
+        fi
+
+        # Copy wolfSSL debs into the unified artifacts directory for later upload
         mkdir -p "/tmp/wolfprov-packages"
-        echo "Moving wolfssl files to artifacts directory..."
-        
-        # Copy all wolfssl-related files (source and binary packages)
-        find /tmp/wolfssl-pkg -name "*wolfssl*" -type f -name "*.deb" -exec cp {} /tmp/wolfprov-packages/ \;
-        find /tmp/wolfssl-pkg -name "*wolfssl*" -type f -name "*.dsc" -exec cp {} /tmp/wolfprov-packages/ \;
-        find /tmp/wolfssl-pkg -name "*wolfssl*" -type f -name "*.tar.gz" -exec cp {} /tmp/wolfprov-packages/ \;
-        find /tmp/wolfssl-pkg -name "*wolfssl*" -type f -name "*.orig.tar.gz" -exec cp {} /tmp/wolfprov-packages/ \;
-        
-        echo "WolfSSL files in artifacts directory:"
-        ls -la /tmp/wolfprov-packages/*wolfssl* || true
+        cp -v /tmp/artifacts/*wolfssl*\.deb /tmp/wolfprov-packages/ 2>/dev/null || true
 
     - name: Build Debian package
       run: |

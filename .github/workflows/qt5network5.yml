@@ -30,7 +30,6 @@ jobs:
   test_qtbase_network:
     if: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-22.04
-    needs: build_wolfprovider
     timeout-minutes: 30
     strategy:
       matrix:
