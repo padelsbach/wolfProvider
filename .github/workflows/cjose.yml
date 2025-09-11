@@ -142,9 +142,12 @@ jobs:
           openssl list -providers
           export ${{ matrix.force_fail }}
 
-          # Run tests
-          make test || true
-
-          # Capture result
-          TEST_RESULT=$(tail -1 ./test/check_cjose.log | grep PASS; echo $?)
+          # Run tests and capture the actual exit code
+          make test
+          TEST_RESULT=$?
+          
+          # For debugging, show the test result
+          echo "Test exit code: $TEST_RESULT"
+          echo "Force fail setting: ${{ matrix.force_fail }}"
+          
           $GITHUB_WORKSPACE/.github/scripts/check-workflow-result.sh $TEST_RESULT ${{ matrix.force_fail }} cjose
