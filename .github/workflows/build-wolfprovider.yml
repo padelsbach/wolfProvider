@@ -112,6 +112,7 @@ jobs:
           path: |
             /tmp/wolfprov-packages/*openssl*.deb
             /tmp/wolfprov-packages/*libssl3*.deb
+            /tmp/wolfprov-packages/*libssl-dev*.deb
             /tmp/wolfprov-packages/*libwolfprov*.deb
           retention-days: 7
 

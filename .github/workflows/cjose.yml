@@ -85,23 +85,25 @@ jobs:
             apt install -y $wolfssl_debs
           fi
 
-          # Install OpenSSL packages (openssl, libssl3)
+          # Install OpenSSL packages (runtime + development headers)
           openssl_debs=$(ls -1 /tmp/openssl-wolfprov-artifacts/*openssl*.deb 2>/dev/null || true)
           libssl3_debs=$(ls -1 /tmp/openssl-wolfprov-artifacts/*libssl3*.deb 2>/dev/null || true)
-          if [ -n "$openssl_debs$libssl3_debs" ]; then
-            echo "Installing OpenSSL packages: $openssl_debs $libssl3_debs"
-            apt install -y $openssl_debs $libssl3_debs || apt install -y $libssl3_debs $openssl_debs
+          libssl_dev_debs=$(ls -1 /tmp/openssl-wolfprov-artifacts/*libssl-dev*.deb 2>/dev/null || true)
+          
+          if [ -n "$openssl_debs$libssl3_debs$libssl_dev_debs" ]; then
+            echo "Installing OpenSSL packages: $openssl_debs $libssl3_debs $libssl_dev_debs"
+            apt install -y $openssl_debs $libssl3_debs $libssl_dev_debs
           fi
 
           # Install wolfProvider main package only (no dev/debug needed for testing)
           wolfprov_main=$(ls -1 /tmp/openssl-wolfprov-artifacts/libwolfprov_[0-9]*.deb 2>/dev/null | head -n1 || true)
-          
+
           if [ -z "$wolfprov_main" ]; then
             echo "ERROR: libwolfprov main package not found in artifacts"
             ls -la /tmp/openssl-wolfprov-artifacts
             exit 1
           fi
-          
+
           echo "Installing wolfProvider main package: $wolfprov_main"
           apt install -y "$wolfprov_main"
 
