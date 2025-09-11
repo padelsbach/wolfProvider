@@ -20,8 +20,10 @@ set -euo pipefail
 
 PKG_NAME="libwolfprov"
 
+printf "Running build-debian.sh\n"
+
 # Step 1: Determine the repo root
-REPO_ROOT=$(git rev-parse --show-toplevel)
+REPO_ROOT=${GITHUB_WORKSPACE:-$(git rev-parse --show-toplevel)}
 cd "$REPO_ROOT"
 
 # Step 2: Determine latest upstream tag
@@ -108,9 +110,28 @@ echo "📦 Creating tarball $TARBALL from commit $current_commit..."
 git archive --format=tar.gz --prefix="${TARBALL_PREFIX}/" \
     -o "../$TARBALL" "$current_commit"
 
-# Step 10: Build package
+# Step 9.1: Set up ccache if installed
+# Optional ccache
+if command -v ccache >/dev/null 2>&1; then
+  export CC="ccache gcc"
+  export CXX="ccache g++"
+else
+  export CC="gcc"
+  export CXX="g++"
+fi
+
+# Optional tuning (safe if unset)
+: "${CCACHE_DIR:=}"
+: "${CCACHE_BASEDIR:=}"
+: "${CCACHE_NOHASHDIR:=}"
+: "${CCACHE_COMPILERCHECK:=}"
+
+# Step 10: Build package with optional ccache (if installed)
 echo "⚙️  Building package..."
 WOLFSSL_ISFIPS=${WOLFSSL_ISFIPS:-0}
-debuild -e WOLFSSL_ISFIPS -us -uc
+dpkg-buildpackage -us -uc \
+  -eWOLFSSL_ISFIPS \
+  -eCC -eCXX \
+  -eCCACHE_DIR -eCCACHE_BASEDIR -eCCACHE_NOHASHDIR -eCCACHE_COMPILERCHECK
 
 echo "✅ Build completed for version $VERSION"

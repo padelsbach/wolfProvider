@@ -18,22 +18,9 @@ concurrency:
 # END OF COMMON SECTION
 
 jobs:
-  build_wolfprovider:
-    uses: ./.github/workflows/build-wolfprovider.yml
-    with:
-      wolfssl_ref: ${{ matrix.wolfssl_ref }}
-      openssl_ref: ${{ matrix.openssl_ref }}
-    strategy:
-      matrix: 
-        # Test 5.8.2 since our .deb is based on that version
-        wolfssl_ref: [ 'v5.8.2-stable' ]
-        openssl_ref: [ 'openssl-3.5.0' ]
-
   test_cjose:
-    runs-on: ubuntu-22.04
     if: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' }}
-    needs: build_wolfprovider
-    # This should be a safe limit for the tests to run.
+    runs-on: ubuntu-22.04
     timeout-minutes: 20
     container:
       image: debian:bookworm
@@ -41,10 +28,12 @@ jobs:
         DEBIAN_FRONTEND: noninteractive
     strategy:
       matrix:
-        # Dont test osp master since it might be unstable
-        cjose_ref: [ 'v0.6.2.1' ]
+        # Match the matrix from build.yml
         wolfssl_ref: [ 'v5.8.2-stable' ]
-        openssl_ref: [ 'openssl-3.5.0' ]
+        openssl_ref: [ 'openssl-3.5.2' ]  # Note: build.yml uses 3.5.2, not 3.5.0
+        replace_default: [ true ]
+        # cjose-specific matrix
+        cjose_ref: [ 'v0.6.2.1' ]
         force_fail: [ 'WOLFPROV_FORCE_FAIL=1', '' ]
     steps:
       - name: Set up environment
@@ -58,19 +47,13 @@ jobs:
         with:
           fetch-depth: 1
 
-      - name: Download wolfSSL packages
+      - name: Download wolfProvider packages
         uses: actions/download-artifact@v4
         with:
-          name: wolfssl-debian-packages-${{ github.sha }}
-          path: /tmp/wolfssl-artifacts
+          name: wolfprov-debian-packages-${{ matrix.wolfssl_ref }}-${{ matrix.openssl_ref }}${{ matrix.replace_default && '-replace-default' || '' }}-${{ github.sha }}
+          path: /tmp/wolfprov-packages
 
-      - name: Download OpenSSL/wolfProvider packages
-        uses: actions/download-artifact@v4
-        with:
-          name: openssl-wolfprov-debian-packages-${{ github.sha }}
-          path: /tmp/openssl-wolfprov-artifacts
-
-      - name: Install wolfSSL/OpenSSL/wolfprov packages
+      - name: Install wolfProvider packages
         run: |
           $GITHUB_WORKSPACE/.github/scripts/install-packages.sh
 
@@ -93,12 +76,7 @@ jobs:
       - name: Run cjose tests
         working-directory: cjose
         run: |
-          # wolfProvider is already loaded as the default provider
-          echo "Current OpenSSL providers:"
-          openssl list -providers
-          openssl list -providers | grep -q "wolfSSL Provider" || (echo "ERROR: libwolfprov not found in OpenSSL providers" && exit 1)
           export ${{ matrix.force_fail }}
-
           make test 2>&1 | tee cjose-test.log
           TEST_RESULT=$(grep -q "FAIL: check_cjose" cjose-test.log && echo "1" || echo "0")
           echo "TEST_RESULT = $TEST_RESULT"

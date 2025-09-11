@@ -43,8 +43,12 @@ install_wolfssl_packages() {
     CURRENT_ARCH=$(dpkg --print-architecture)
     echo "Current architecture: $CURRENT_ARCH"
     
+    cd "$dest_dir"
+    # Move files from internal directory
+    # TODO: remove this from the tarball
+    mv debian-packages/* .
+    rm -rf debian-packages
     # Look for existing .deb files that match the current architecture
-    cd "$dest_dir/debian-packages"
     MATCHING_DEB_FILES=$(find . -name "*_${CURRENT_ARCH}.deb" -o -name "*_${CURRENT_ARCH}_*.deb" 2>/dev/null || true)
     
     if [ -n "$MATCHING_DEB_FILES" ]; then

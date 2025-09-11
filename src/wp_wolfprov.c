@@ -1242,7 +1242,7 @@ int wolfssl_provider_init(const OSSL_CORE_HANDLE* handle,
     if (ok) {
         if (wolfSSL_Debugging_ON() != 0) {
             WOLFPROV_MSG(WP_LOG_PROVIDER,
-              "WARNING: wolfProvider built with debug but underlying wolfSSL is not!"
+              "WARNING: wolfProvider built with debug but underlying wolfSSL is not!\n"
               "Building wolfSSl with debug is highly recommended, proceeding...");
         }
         else {
