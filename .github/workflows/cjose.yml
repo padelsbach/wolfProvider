@@ -116,8 +116,9 @@ jobs:
       - name: Build cjose
         working-directory: cjose
         run: |
-          # Configure with OpenSSL
-          ./configure CFLAGS="-Wno-error=deprecated-declarations" --with-openssl=$GITHUB_WORKSPACE/openssl-install
+          openssl list -providers
+          # Configure with system OpenSSL (installed via .deb packages)
+          ./configure CFLAGS="-Wno-error=deprecated-declarations"
 
           # Build cjose
           make
@@ -126,7 +127,11 @@ jobs:
         working-directory: cjose
         run: |
           # Set up the environment for wolfProvider
+          echo "before env-setup"
+          openssl list -providers
           source $GITHUB_WORKSPACE/scripts/env-setup
+          echo "after env-setup"
+          openssl list -providers
           export ${{ matrix.force_fail }}
 
           # Run tests
