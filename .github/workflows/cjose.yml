@@ -137,11 +137,8 @@ jobs:
       - name: Run cjose tests
         working-directory: cjose
         run: |
-          # Set up the environment for wolfProvider
-          echo "before env-setup"
-          openssl list -providers
-          source $GITHUB_WORKSPACE/scripts/env-setup
-          echo "after env-setup"
+          # wolfProvider is already loaded as the default provider
+          echo "Current OpenSSL providers:"
           openssl list -providers
           export ${{ matrix.force_fail }}
 
