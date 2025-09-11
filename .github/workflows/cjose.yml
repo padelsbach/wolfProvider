@@ -142,9 +142,7 @@ jobs:
           openssl list -providers
           export ${{ matrix.force_fail }}
 
-          # Run tests and capture the actual exit code
-          make test
-          TEST_RESULT=$?
+          make test || TEST_RESULT=$?
           
           # For debugging, show the test result
           echo "Test exit code: $TEST_RESULT"
