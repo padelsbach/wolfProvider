@@ -85,7 +85,7 @@ jobs:
             apt install -y $wolfssl_debs
           fi
 
-          # Install OpenSSL packages (runtime + development headers, skip debug symbols)
+          # Install OpenSSL packages (runtime + development headers)
           openssl_debs=$(ls -1 /tmp/openssl-wolfprov-artifacts/openssl_[0-9]*.deb 2>/dev/null || true)
           libssl3_debs=$(ls -1 /tmp/openssl-wolfprov-artifacts/libssl3_[0-9]*.deb 2>/dev/null || true)
           libssl_dev_debs=$(ls -1 /tmp/openssl-wolfprov-artifacts/libssl-dev_[0-9]*.deb 2>/dev/null || true)
@@ -127,8 +127,6 @@ jobs:
       - name: Build cjose
         working-directory: cjose
         run: |
-          openssl list -providers
-          # Configure with system OpenSSL (installed via .deb packages)
           ./configure CFLAGS="-Wno-error=deprecated-declarations"
 
           # Build cjose
@@ -139,13 +137,10 @@ jobs:
         run: |
           # wolfProvider is already loaded as the default provider
           echo "Current OpenSSL providers:"
-          openssl list -providers
+          openssl list -providers | grep -q wolfSSL Provider || (echo "ERROR: libwolfprov not found in OpenSSL providers" && exit 1)
           export ${{ matrix.force_fail }}
 
-          make test || TEST_RESULT=$?
-          
-          # For debugging, show the test result
-          echo "Test exit code: $TEST_RESULT"
-          echo "Force fail setting: ${{ matrix.force_fail }}"
-          
+          make test || true
+
+          TEST_RESULT=$(tail -1 ./test/check_cjose.log | grep PASS; echo $?)          
           $GITHUB_WORKSPACE/.github/scripts/check-workflow-result.sh $TEST_RESULT ${{ matrix.force_fail }} cjose
