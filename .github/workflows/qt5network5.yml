@@ -1,13 +1,21 @@
 name: qtbase Network Tests
+
+# START OF COMMON SECTION
 on:
   push:
     branches: [ 'master', 'main', 'release/**', 'qt5network5' ]
   pull_request:
     branches: [ '*' ]
+  workflow_run:
+    workflows: ["Build Packages"]
+    types:
+      - completed
+    branches: [ '**' ]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
+# END OF COMMON SECTION
 
 jobs:
   build_wolfprovider:
@@ -19,44 +27,44 @@ jobs:
       matrix:
         wolfssl_ref: [ 'master', 'v5.8.0-stable' ]
         openssl_ref: [ 'openssl-3.5.0' ]
-
   test_qtbase_network:
+    if: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-22.04
     needs: build_wolfprovider
     timeout-minutes: 30
     strategy:
       matrix:
-        wolfssl_ref: [ 'master', 'v5.8.0-stable' ]
-        openssl_ref: [ 'openssl-3.5.0' ]
+        # Match the matrix from build.yml
+        wolfssl_ref: [ 'v5.8.2-stable' ]
+        openssl_ref: [ 'openssl-3.5.2' ]  # Note: build.yml uses 3.5.2, not 3.5.0
+        replace_default: [ true ]
+        # qt5network5-specific matrix
         qt_ref: [ 'dev', 'v5.15.8-lts-lgpl' ]
         force_fail: [ 'WOLFPROV_FORCE_FAIL=1', '' ]
         exclude:
           - qt_ref: 'dev'
             force_fail: 'WOLFPROV_FORCE_FAIL=1'
     steps:
+      - name: Set up environment
+        run: |
+          apt-get update
+          apt-get install -y build-essential pkg-config \
+            python3 perl libpcre2-dev zlib1g-dev cmake ninja-build
+
       - name: Checkout wolfProvider
         uses: actions/checkout@v4
         with:
           fetch-depth: 1
 
-      - name: Retrieving wolfSSL/wolfProvider from cache
-        uses: actions/cache/restore@v4
-        id: wolfprov-cache
+      - name: Download wolfProvider packages
+        uses: actions/download-artifact@v4
         with:
-          path: |
-            wolfssl-install
-            wolfprov-install
-            openssl-install/lib64
-            openssl-install/include
-            openssl-install/bin
-          key: wolfprov-${{ matrix.wolfssl_ref }}-${{ matrix.openssl_ref }}-${{ github.sha }}
-          fail-on-cache-miss: true
+          name: wolfprov-debian-packages-${{ matrix.wolfssl_ref }}-${{ matrix.openssl_ref }}${{ matrix.replace_default && '-replace-default' || '' }}
+          path: /tmp/wolfprov-packages
 
-      - name: Install Qt dependencies
+      - name: Install wolfProvider packages
         run: |
-          sudo apt-get update
-          sudo apt-get install -y build-essential pkg-config \
-            python3 perl libpcre2-dev zlib1g-dev cmake ninja-build
+          $GITHUB_WORKSPACE/.github/scripts/install-packages.sh
 
       - name: Checkout OSP
         uses: actions/checkout@v4

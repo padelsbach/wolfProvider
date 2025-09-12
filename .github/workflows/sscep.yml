@@ -6,6 +6,11 @@ on:
     branches: [ 'master', 'main', 'release/**' ]
   pull_request:
     branches: [ '*' ]
+  workflow_run:
+    workflows: ["Build Packages"]
+    types:
+      - completed
+    branches: [ '**' ]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -22,43 +27,42 @@ jobs:
       matrix:
         wolfssl_ref: [ 'master', 'v5.8.0-stable' ]
         openssl_ref: [ 'openssl-3.5.0' ]
-
+  
   test_sscep:
+    if: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-22.04
     needs: build_wolfprovider
     timeout-minutes: 10
     strategy:
       matrix:
+        # Match the matrix from build.yml
+        wolfssl_ref: [ 'v5.8.2-stable' ]
+        openssl_ref: [ 'openssl-3.5.2' ]  # Note: build.yml uses 3.5.2, not 3.5.0
+        replace_default: [ true ]
+        # sscep-specific matrix
         sscep_ref: [ 'master', 'v0.10.0' ]
-        wolfssl_ref: [ 'master', 'v5.8.0-stable' ]
-        openssl_ref: [ 'openssl-3.5.0' ]
         force_fail: [ 'WOLFPROV_FORCE_FAIL=1', '' ]
 
     steps:
+      - name: Set up environment
+        run: |
+          apt-get update
+          apt-get install -y scep psmisc
+
       - name: Checkout wolfProvider
         uses: actions/checkout@v4
         with:
           fetch-depth: 1
 
-      - name: Retrieving wolfSSL/wolfProvider from cache
-        uses: actions/cache/restore@v4
-        id: wolfprov-cache
+      - name: Download wolfProvider packages
+        uses: actions/download-artifact@v4
         with:
-          path: |
-            wolfssl-install
-            wolfprov-install
-            openssl-install/lib64
-            openssl-install/include
-            openssl-install/bin
+          name: wolfprov-debian-packages-${{ matrix.wolfssl_ref }}-${{ matrix.openssl_ref }}${{ matrix.replace_default && '-replace-default' || '' }}
+          path: /tmp/wolfprov-packages
 
-          key: wolfprov-${{ matrix.wolfssl_ref }}-${{ matrix.openssl_ref }}-${{ github.sha }}
-          fail-on-cache-miss: true
-
-      - name: Install sscep dependencies
+      - name: Install wolfProvider packages
         run: |
-          sudo apt-get update
-
-          sudo apt-get install -y scep psmisc
+          $GITHUB_WORKSPACE/.github/scripts/install-packages.sh
 
       - name: Download sscep
         uses: actions/checkout@v4

@@ -13,8 +13,19 @@ concurrency:
 # END OF COMMON SECTION
 
 jobs:
+  build_wolfprovider:
+    uses: ./.github/workflows/build-wolfprovider.yml
+    with:
+      wolfssl_ref: ${{ matrix.wolfssl_ref }}
+      openssl_ref: ${{ matrix.openssl_ref }}
+    strategy:
+      matrix:
+        wolfssl_ref: [ 'master', 'v5.8.0-stable' ]
+        openssl_ref: [ 'openssl-3.5.0' ]
+  
   test_sssd:
     runs-on: ubuntu-22.04
+    needs: build_wolfprovider
     timeout-minutes: 20
     container:
       image: quay.io/sssd/ci-client-devel:ubuntu-latest

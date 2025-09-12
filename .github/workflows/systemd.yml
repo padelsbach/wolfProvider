@@ -6,6 +6,11 @@ on:
     branches: ['master', 'main', 'release/**']
   pull_request:
     branches: ['*']
+  workflow_run:
+    workflows: ["Build Packages"]
+    types:
+      - completed
+    branches: [ '**' ]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -20,10 +25,10 @@ jobs:
       openssl_ref: ${{ matrix.openssl_ref }}
     strategy:
       matrix:
-        wolfssl_ref: ['v5.8.0-stable', 'master']
-        openssl_ref: ['openssl-3.5.0']
-
+        wolfssl_ref: [ 'master', 'v5.8.0-stable' ]
+        openssl_ref: [ 'openssl-3.5.0' ]
   test_systemd:
+    if: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-22.04
     needs: build_wolfprovider
     # This should be a safe limit for the tests to run.
@@ -31,15 +36,18 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        # Match the matrix from build.yml
+        wolfssl_ref: [ 'v5.8.2-stable' ]
+        openssl_ref: [ 'openssl-3.5.2' ]  # Note: build.yml uses 3.5.2, not 3.5.0
+        replace_default: [ true ]
+        # systemd-specific matrix
         systemd_ref: ['v254']
-        wolfssl_ref: ['v5.8.0-stable', 'master']
-        openssl_ref: ['openssl-3.5.0']
         force_fail: ['WOLFPROV_FORCE_FAIL=1', '']
     steps:
-      - name: Install dependencies
+      - name: Set up environment
         run: |
-          sudo apt-get update
-          sudo apt-get install -y build-essential meson ninja-build \
+          apt-get update
+          apt-get install -y build-essential meson ninja-build \
             libmount-dev gperf python3-pytest libuv1-dev libnghttp2-dev \
             libcap-dev uuid-dev libdevmapper-dev libpopt-dev libjson-c-dev \
             libargon2-dev libblkid-dev asciidoctor pkgconf zlib1g-dev
@@ -49,18 +57,15 @@ jobs:
         with:
           fetch-depth: 1
 
-      - name: Retrieving wolfSSL/wolfProvider from cache
-        uses: actions/cache/restore@v4
-        id: wolfprov-cache
+      - name: Download wolfProvider packages
+        uses: actions/download-artifact@v4
         with:
-          path: |
-            wolfssl-install
-            wolfprov-install
-            openssl-install/lib64
-            openssl-install/include
-            openssl-install/bin
-          key: wolfprov-${{ matrix.wolfssl_ref }}-${{ matrix.openssl_ref }}-${{ github.sha }}
-          fail-on-cache-miss: true
+          name: wolfprov-debian-packages-${{ matrix.wolfssl_ref }}-${{ matrix.openssl_ref }}${{ matrix.replace_default && '-replace-default' || '' }}
+          path: /tmp/wolfprov-packages
+
+      - name: Install wolfProvider packages
+        run: |
+          $GITHUB_WORKSPACE/.github/scripts/install-packages.sh
 
       - name: Checkout systemd
         uses: actions/checkout@v4
