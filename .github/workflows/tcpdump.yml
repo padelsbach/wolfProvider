@@ -4,13 +4,22 @@ on:
   push:
     branches: [ 'master', 'main', 'release/**' ]
   pull_request:
-    branches: [ '*' ]
+    branches: [ '**' ]
+  workflow_run:
+    workflows: ["Build Packages"]
+    types:
+      - completed
+    branches: [ '**' ]
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
   build_wolfprovider:
+    # As a transition, disable this workflow on the dev branch.
+    # Github actions depend on the main/master branch so we must
+    # transition incrementally.
+    if: ${{ !contains('test_deb_ci', github.event.workflow_run.head_branch) }}
     uses: ./.github/workflows/build-wolfprovider.yml
     with:
       wolfssl_ref: ${{ matrix.wolfssl_ref }}
@@ -22,6 +31,7 @@ jobs:
 
   test_tcpdump:
     runs-on: ubuntu-22.04
+    if: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' }}
     needs: build_wolfprovider
     timeout-minutes: 15
     strategy:

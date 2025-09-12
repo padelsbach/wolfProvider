@@ -5,7 +5,12 @@ on:
   push:
     branches: [ 'master', 'main', 'release/**' ]
   pull_request:
-    branches: [ '*' ]
+    branches: [ '**' ]
+  workflow_run:
+    workflows: ["Build Packages"]
+    types:
+      - completed
+    branches: [ '**' ]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -13,8 +18,24 @@ concurrency:
 # END OF COMMON SECTION
 
 jobs:
+  build_wolfprovider:
+    # As a transition, disable this workflow on the dev branch.
+    # Github actions depend on the main/master branch so we must
+    # transition incrementally.
+    if: ${{ !contains('test_deb_ci', github.event.workflow_run.head_branch) }}
+    uses: ./.github/workflows/build-wolfprovider.yml
+    with:
+      wolfssl_ref: ${{ matrix.wolfssl_ref }}
+      openssl_ref: ${{ matrix.openssl_ref }}
+    strategy:
+      matrix:
+        wolfssl_ref: [ 'master', 'v5.8.0-stable' ]
+        openssl_ref: [ 'openssl-3.5.0' ]
+  
   test_sssd:
     runs-on: ubuntu-22.04
+    if: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' }}
+    needs: build_wolfprovider
     timeout-minutes: 20
     container:
       image: quay.io/sssd/ci-client-devel:ubuntu-latest

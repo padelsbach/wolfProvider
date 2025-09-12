@@ -42,20 +42,21 @@ jobs:
           expect \
           xxd
 
+    - name: Checkout wolfProvider
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 1
+        fetch-tags: true
+
     # Avoid "detected dubious ownership" warning
     - name: Ensure the working directory safe
       run: |
         git config --global --add safe.directory "$GITHUB_WORKSPACE"
 
-    - name: Checkout wolfProvider
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 1
-    - run: |
-        # Fetch tags, needed for the Debian versioning
-        git fetch --tags
-        # List all tags
-        git tag -l
+    - name: Fetch tags from the mainline branch (for Debian versioning)
+      run: |
+        git remote add upstream https://github.com/wolfSSL/wolfProvider.git || true
+        git fetch upstream --tags --no-recurse-submodules
 
     - name: Install wolfssl debian package
       run: |
