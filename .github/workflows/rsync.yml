@@ -1,9 +1,9 @@
 name: rsync Tests
 on:
-  push: [ '' ]
-#    branches: [ 'master', 'main', 'release/**' ]
-#  pull_request:
-#    branches: [ '*' ]
+  push:
+    branches: [ 'master', 'main', 'release/**' ]
+  pull_request:
+    branches: [ '*' ]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
