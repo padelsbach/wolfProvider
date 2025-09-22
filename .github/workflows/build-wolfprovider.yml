@@ -131,6 +131,19 @@ jobs:
       #     mv ${{ env.WOLFSSL_PACKAGES_PATH }}/debian-packages/* ${{ env.WOLFSSL_PACKAGES_PATH }}
       #     apt install -y ${{ env.WOLFSSL_PACKAGES_PATH }}/*.deb
 
+      - name: Install baseline openssl
+        run: |
+          apt-get install --allow-downgrades --reinstall \
+            libssl3=3.0.17-1~deb12u2 \
+            libssl-dev=3.0.17-1~deb12u2 \
+            openssl=3.0.17-1~deb12u2
+
+      - name: Build wolfSSL packages and install
+        # if: steps.wolfssl_cache.outputs.cache-hit != 'true'
+        run: | 
+          # $GITHUB_WORKSPACE/debian/install-wolfssl.sh --tag ${{ inputs.wolfssl_ref }} ${{ env.WOLFSSL_PACKAGES_PATH }}
+          $GITHUB_WORKSPACE/debian/install-wolfssl.sh ${{ env.WOLFSSL_PACKAGES_PATH }}
+
       # Check for cached OpenSSL packages
       - name: Checking OpenSSL packages in cache
         uses: actions/cache@v4
@@ -174,19 +187,6 @@ jobs:
           ls -la ${{ env.WOLFPROV_PACKAGES_PATH }} || true
           ls -la ${{ env.WOLFSSL_PACKAGES_PATH }} || true
           ls -la ${{ env.OPENSSL_PACKAGES_PATH }} || true
-
-      - name: Install openssl packages for include files
-        run: |
-          apt install --reinstall -y \
-            ${{ env.OPENSSL_PACKAGES_PATH }}/openssl_*.deb \
-            ${{ env.OPENSSL_PACKAGES_PATH }}/libssl3_*.deb \
-            ${{ env.OPENSSL_PACKAGES_PATH }}/libssl-dev_*.deb
-
-      - name: Build wolfSSL packages and install
-        # if: steps.wolfssl_cache.outputs.cache-hit != 'true'
-        run: | 
-          # $GITHUB_WORKSPACE/debian/install-wolfssl.sh --tag ${{ inputs.wolfssl_ref }} ${{ env.WOLFSSL_PACKAGES_PATH }}
-          $GITHUB_WORKSPACE/debian/install-wolfssl.sh ${{ env.WOLFSSL_PACKAGES_PATH }}
 
       - name: Save to cache
         uses: actions/cache/save@v4
