@@ -184,6 +184,8 @@ install_wolfssl() {
             cd XXX-fips-test
         fi
 
+        printf "Running ./configure with: ${CONF_ARGS} ${WOLFSSL_CONFIG_OPTS} CFLAGS=\"${WOLFSSL_CONFIG_CFLAGS}\"\n"
+        printf "Running ./configure with: ${CONF_ARGS} ${WOLFSSL_CONFIG_OPTS} CFLAGS=\"${WOLFSSL_CONFIG_CFLAGS}\"\n" >>$LOG_FILE 2>&1
         ./configure ${CONF_ARGS} ${WOLFSSL_CONFIG_OPTS} CFLAGS="${WOLFSSL_CONFIG_CFLAGS}" >>$LOG_FILE 2>&1
         if [ $? != 0 ]; then
             printf "ERROR running ./configure\n"

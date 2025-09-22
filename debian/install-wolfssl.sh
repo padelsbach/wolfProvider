@@ -153,7 +153,11 @@ AC_CONFIG_FILES([debian/rules],[chmod +x debian/rules])' configure.ac
         --enable-shake256 \
         --enable-wolfprovider \
         --enable-rsapss \
-        --enable-scrypt"
+        --enable-scrypt" \
+        --enable-keylog-export \
+        --enable-debug-trace-errcodes=backtrace" \
+        --with-max-ecc-bits=1024" \
+        --enable-sha
 
     if [ "$debug_mode" = "true" ]; then
         configure_opts="$configure_opts --enable-debug"
@@ -180,6 +184,9 @@ AC_CONFIG_FILES([debian/rules],[chmod +x debian/rules])' configure.ac
             -DWC_RSA_NO_PADDING \
             -DACVP_VECTOR_TESTING \
             -DWOLFSSL_ECDSA_SET_K" \
+            -DHAVE_PUBLIC_FFDHE \
+            -DWOLFSSL_PSS_LONG_SALT \
+            -DWOLFSSL_LOGGINGENABLED_DEFAULT=1 \
             LIBS="-lm"
 
     # Build Debian packages
