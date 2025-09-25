@@ -161,8 +161,8 @@ else
     X11VNC_TEST_FAIL=1
 fi
 
-killall x11vnc > /dev/null 2> /dev/null
-killall Xvfb > /dev/null 2> /dev/null
+killall x11vnc > /dev/null 2> /dev/null || true
+killall Xvfb > /dev/null 2> /dev/null || true
 cat server.log >> x11vnc_test.log
 
 $GITHUB_WORKSPACE/.github/scripts/check-workflow-result.sh $X11VNC_TEST_FAIL "$WOLFPROV_FORCE_FAIL_STR" x11vnc

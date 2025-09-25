@@ -132,6 +132,7 @@ AC_CONFIG_FILES([debian/rules],[chmod +x debian/rules])' configure.ac
     # Configure with the specified options
     echo "Configuring wolfSSL with specified options..."
     configure_opts="--enable-opensslcoexist \
+        --enable-opensslextra \
         --enable-cmac \
         --with-eccminsz=192 \
         --enable-ed25519 \
@@ -145,9 +146,16 @@ AC_CONFIG_FILES([debian/rules],[chmod +x debian/rules])' configure.ac
         --enable-keygen \
         --enable-shake128 \
         --enable-shake256 \
-        --enable-wolfprovider \
         --enable-rsapss \
-        --enable-scrypt"
+        --enable-scrypt \
+        --enable-base16 \
+        --enable-aesctr \
+        --enable-des3 \
+        --enable-enckeys \
+        --enable-hkdf \
+        --enable-supportedcurves \
+        --enable-base64encode \
+        --enable-wolfprovider"
 
     if [ "$debug_mode" = "true" ]; then
         configure_opts="$configure_opts --enable-debug"
@@ -173,7 +181,10 @@ AC_CONFIG_FILES([debian/rules],[chmod +x debian/rules])' configure.ac
             -DWC_RSA_DIRECT \
             -DWC_RSA_NO_PADDING \
             -DACVP_VECTOR_TESTING \
-            -DWOLFSSL_ECDSA_SET_K" \
+            -DWOLFSSL_ECDSA_SET_K \
+            -DWOLFSSL_ASN_ALL \
+            -DWOLFSSL_ALT_NAMES \
+            -DWOLFSSL_HAVE_ISSUER_NAMES" \
             LIBS="-lm"
 
     # Build Debian packages
