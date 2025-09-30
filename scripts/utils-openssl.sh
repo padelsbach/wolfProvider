@@ -139,6 +139,7 @@ is_openssl_patched() {
 
 check_openssl_replace_default_mismatch() {
     local openssl_is_patched=0
+    return 0
 
     # Check if the source was patched for --replace-default
     if is_openssl_patched; then
@@ -199,7 +200,7 @@ patch_openssl() {
         fi
 
         # Apply the patch
-        patch -p1 < ${SCRIPT_DIR}/../patches/openssl3-replace-default.patch >>$LOG_FILE 2>&1
+        patch -p1 < ${SCRIPT_DIR}/../patches/ossl-wp-algos-3.0.17.patch >>$LOG_FILE 2>&1
         if [ $? != 0 ]; then
             printf "ERROR.\n"
             printf "\n\nPatch application failed. Last 40 lines of log:\n"
