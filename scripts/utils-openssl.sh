@@ -169,9 +169,9 @@ patch_openssl_version() {
     # Patch the OpenSSL version (wolfProvider/openssl-source/VERSION.dat) 
     # with our BUILD_METADATA, depending on the FIPS flag. Either "wolfProvider" or "wolfProvider-fips".
     if [ "$WOLFSSL_ISFIPS" = "1" ]; then
-        sed -i 's/BUILD_METADATA=.*/BUILD_METADATA=wolfProvider-fips/g' ${OPENSSL_SOURCE_DIR}/VERSION.dat
+        sed -i 's/BUILD_METADATA=.*/BUILD_METADATA=wolfProvider-fips-algodisable/g' ${OPENSSL_SOURCE_DIR}/VERSION.dat
     else
-        sed -i 's/BUILD_METADATA=.*/BUILD_METADATA=wolfProvider-nonfips/g' ${OPENSSL_SOURCE_DIR}/VERSION.dat
+        sed -i 's/BUILD_METADATA=.*/BUILD_METADATA=wolfProvider-nonfips-algodisable/g' ${OPENSSL_SOURCE_DIR}/VERSION.dat
     fi
 
     # Patch the OpenSSL RELEASE_DATE field with the current date in the format DD MMM YYYY
