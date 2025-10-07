@@ -74,7 +74,7 @@ jobs:
           apt-get update
           apt install -y openssl libssl3 apt-utils
 
-          apt install --reinstall -y \
+          dpkg -i \
             ${{ env.WOLFPROV_PACKAGES_PATH }}/libwolfprov_*.deb
 
       - name: Verify wolfProvider is properly installed
