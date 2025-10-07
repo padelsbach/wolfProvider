@@ -72,7 +72,7 @@ jobs:
             ${{ env.WOLFSSL_PACKAGES_PATH }}/libwolfssl_*.deb
 
           apt-get update
-          apt install openssl libssl3 apt-utils
+          apt install -y openssl libssl3 apt-utils
 
           apt install --reinstall -y \
             ${{ env.WOLFPROV_PACKAGES_PATH }}/libwolfprov_*.deb
