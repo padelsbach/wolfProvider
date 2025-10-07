@@ -3,7 +3,7 @@ name: Debian Package Test
 # START OF COMMON SECTION
 on:
   push:
-    branches: [ 'master', 'main', 'release/**' ]
+    branches: [ '*'] # 'master', 'main', 'release/**' ]
   pull_request:
     branches: [ '*' ]
 
@@ -71,14 +71,16 @@ jobs:
           apt install --reinstall -y \
             ${{ env.WOLFSSL_PACKAGES_PATH }}/libwolfssl_*.deb
 
-          apt-get update && \
-            apt install --reinstall -y openssl libssl3
+          apt-get update
+          apt install openssl libssl3 apt-utils
 
           apt install --reinstall -y \
             ${{ env.WOLFPROV_PACKAGES_PATH }}/libwolfprov_*.deb
 
       - name: Verify wolfProvider is properly installed
         run: |
+          printf "Packages installed: wolf"
+          dpkg -l | grep wolf
           $GITHUB_WORKSPACE/scripts/verify-install.sh ${{ matrix.fips && '--fips' || '' }}
 
       - name: Test OpenSSL provider functionality
