@@ -72,6 +72,15 @@ jobs:
           key: openssl-wolfprov-debian-packages-${{ github.sha }}${{ matrix.replace_default && '-replace-default' || '' }}
           fail-on-cache-miss: true
 
+      - name: Show openssl version with apt and dpkg
+        run: |
+          echo "OpenSSL version with apt:"
+          apt show openssl | grep Version
+          echo "OpenSSL version with dpkg:"
+          dpkg -l | grep openssl
+          echo "OpenSSL version with openssl version:"
+          openssl version
+
       - name: Install wolfSSL/OpenSSL/wolfprov packages
         run: |
           printf "Installing OpenSSL/wolfProvider packages:\n"
@@ -79,15 +88,15 @@ jobs:
           ls -la ${{ env.OPENSSL_PACKAGES_PATH }}
           ls -la ${{ env.WOLFPROV_PACKAGES_PATH }}
 
-          apt install --reinstall -y --allow-downgrades --allow-change-held-packages \
+          apt install --reinstall -y \
             ${{ env.WOLFSSL_PACKAGES_PATH }}/libwolfssl_*.deb
 
-          apt install --reinstall -y --allow-downgrades --allow-change-held-packages \
+          apt install --reinstall -y \
             ${{ env.OPENSSL_PACKAGES_PATH }}/openssl_*.deb \
             ${{ env.OPENSSL_PACKAGES_PATH }}/libssl3_*.deb \
             ${{ env.OPENSSL_PACKAGES_PATH }}/libssl-dev_*.deb
 
-          apt install --reinstall -y --allow-downgrades --allow-change-held-packages \
+          apt install --reinstall -y \
             ${{ env.WOLFPROV_PACKAGES_PATH }}/libwolfprov_*.deb
 
       - name: Verify wolfProvider is properly installed
