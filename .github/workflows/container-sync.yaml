@@ -1,0 +1,24 @@
+name: Sync upstream GHCR image
+
+on:
+  workflow_dispatch:
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+      contents: read
+    steps:
+      - name: Login to GHCR
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+
+      - name: Pull upstream image
+        run: docker pull ghcr.io/wolfssl/build-wolfprovider-debian:bookworm
+
+      - name: Retag for my namespace
+        run: docker tag ghcr.io/wolfssl/build-wolfprovider-debian:bookworm \
+                     ghcr.io/${{ github.actor }}/build-wolfprovider-debian:bookworm
+
+      - name: Push to my GHCR
+        run: docker push ghcr.io/${{ github.actor }}/build-wolfprovider-debian:bookworm
