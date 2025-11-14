@@ -1,0 +1,159 @@
+name: Yocto CI (direct bitbake)
+
+on:
+  push:
+    branches: [ '**' ]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    # Use 22.04 since it does not have Apparmor
+    runs-on: ubuntu-22.04
+    timeout-minutes: 300
+    strategy:
+      fail-fast: false
+      matrix:
+        machine: [ qemux86-64 ]    # add qemuarm64 later
+        image:   [ core-image-minimal ]
+        distro:  [ poky ]
+
+    env:
+      YOCTO_CACHE_ROOT: ${{ github.workspace }}/.yocto-cache
+      YOCTO_DL_DIR:     ${{ github.workspace }}/.yocto-cache/downloads
+      YOCTO_SSTATE_DIR: ${{ github.workspace }}/.yocto-cache/sstate
+      YOCTO_CCACHE_DIR: ${{ github.workspace }}/.yocto-cache/ccache
+      BUILD_DIR:        ${{ github.workspace }}/.yocto-build
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Yocto host dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            gawk wget git diffstat unzip texinfo chrpath socat cpio \
+            python3 python3-pip python3-pexpect xz-utils debianutils \
+            iputils-ping python3-git python3-jinja2 \
+            libsdl1.2-dev xterm
+
+      # --- Caches (downloads, sstate, optional ccache) ---
+      - name: Cache downloads
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.YOCTO_DL_DIR }}
+          key: dl-scarthgap-${{ matrix.machine }}-${{ matrix.distro }}
+          restore-keys: |
+            dl-scarthgap-${{ matrix.machine }}-
+            dl-scarthgap-
+
+      - name: Cache sstate
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.YOCTO_SSTATE_DIR }}
+          key: sstate-scarthgap-${{ matrix.machine }}-${{ matrix.distro }}
+          restore-keys: |
+            sstate-scarthgap-${{ matrix.machine }}-
+            sstate-scarthgap-
+
+      # - name: Cache ccache
+      #   uses: actions/cache@v4
+      #   with:
+      #     path: ${{ env.YOCTO_CCACHE_DIR }}
+      #     key: ccache-scarthgap-${{ matrix.machine }}-${{ matrix.distro }}
+      #     restore-keys: |
+      #       ccache-scarthgap-${{ matrix.machine }}-
+      #       ccache-scarthgap-
+
+      # --- Get layers (clone at scarthgap) ---
+      - name: Fetch Poky + meta-openembedded (scarthgap)
+        run: |
+          git clone --depth 1 --branch scarthgap https://git.yoctoproject.org/poky poky
+          git clone --depth 1 --branch scarthgap https://git.openembedded.org/meta-openembedded meta-openembedded
+
+      - name: Fetch meta-wolfssl (scarthgap)
+        run: |
+          git clone --depth 1 --branch master https://github.com/wolfssl/meta-wolfssl meta-wolfssl
+
+      # --- Configure build dir, bblayers/local.conf ---
+      - name: Prepare build directory
+        run: |
+          mkdir -p "${YOCTO_DL_DIR}" "${YOCTO_SSTATE_DIR}" "${YOCTO_CCACHE_DIR}"
+          # Create build env
+          . poky/oe-init-build-env "${BUILD_DIR}"
+
+          # bblayers.conf
+          cat > conf/bblayers.conf <<'EOF'
+          BBLAYERS ?= " \
+            ${TOPDIR}/../poky/meta \
+            ${TOPDIR}/../poky/meta-poky \
+            ${TOPDIR}/../poky/meta-yocto-bsp \
+            ${TOPDIR}/../meta-openembedded/meta-oe \
+            ${TOPDIR}/../meta-openembedded/meta-networking \
+            ${TOPDIR}/../meta-openembedded/meta-python \
+          "
+          EOF
+
+          # local.conf
+          cat > conf/local.conf <<EOF
+          MACHINE = "${{ matrix.machine }}"
+          DISTRO  = "${{ matrix.distro }}"
+
+          BB_NUMBER_THREADS ?= "\${@oe.utils.cpu_count()}"
+          PARALLEL_MAKE ?= "-j \${@oe.utils.cpu_count()}"
+
+          INHERIT += "rm_work ccache buildhistory "
+          BUILDHISTORY_COMMIT = "0"
+
+          DL_DIR = "${YOCTO_DL_DIR}"
+          SSTATE_DIR = "${YOCTO_SSTATE_DIR}"
+          CCACHE_DIR = "${YOCTO_CCACHE_DIR}"
+          CCACHE_MAXSIZE = "5G"
+
+          BB_HASHSERVE = "auto"
+          BB_GENERATE_MIRROR_TARBALLS = "1"
+
+          IMAGE_FEATURES += "ssh-server-openssh ptest-pkgs"
+          DISTRO_FEATURES:append = " ptest"
+          TEST_SUITES = "ping ssh ptest"
+          TEST_RUNQEMUPARAMS = "nographic slirp"
+          EOF
+
+      # --- Optional: start local hash equivalence server for faster rebuilds ---
+      - name: Start hashserv
+        run: |
+          nohup bash -lc "python3 -m bb.hashserv --bind :8686 --db ${RUNNER_TEMP}/hashserv.sqlite" >/dev/null 2>&1 &
+
+      # --- Build ---
+      - name: Bitbake image
+        run: |
+          . poky/oe-init-build-env "${BUILD_DIR}"
+          bitbake ${{ matrix.image }}
+
+      # --- Runtime tests in QEMU (oeqa testimage runs openssh ptests) ---
+      - name: Runtime tests
+        run: |
+          . poky/oe-init-build-env "${BUILD_DIR}"
+          bitbake ${{ matrix.image }} -c testimage
+
+      # --- Collect artifacts ---
+      - name: Package artifacts
+        if: always()
+        run: |
+          OUT="artifacts/${{ matrix.machine }}/${{ matrix.image }}"
+          mkdir -p "$OUT"
+          IMAGES="${BUILD_DIR}/tmp/deploy/images/${{ matrix.machine }}"
+          [ -d "$IMAGES" ] && find "$IMAGES" -maxdepth 1 -type f -print0 | xargs -0 -I{} cp -v "{}" "$OUT"
+          [ -d "${BUILD_DIR}/tmp/deploy/licenses" ] && \
+            tar -C "${BUILD_DIR}/tmp/deploy" -czf "$OUT/licenses.tgz" licenses || true
+          # test logs
+          if compgen -G "${BUILD_DIR}/tmp/log/oeqa/*" > /dev/null; then
+            tar -C "${BUILD_DIR}/tmp/log" -czf "$OUT/oeqa-logs.tgz" oeqa
+          fi
+
+      - name: Upload artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: yocto-${{ matrix.machine }}-${{ matrix.image }}
+          path: artifacts
