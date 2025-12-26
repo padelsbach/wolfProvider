@@ -1,0 +1,31 @@
+name: Hello Orchestrator
+
+on:
+  workflow_dispatch:
+
+jobs:
+  hello:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Say hello
+        run: echo "Hello world"
+
+  call-echo-one:
+    needs: hello
+    strategy:
+      matrix:
+        param: [ "alpha", "beta", "gamma" ]
+    uses: ./.github/workflows/echo-one.yml
+    with:
+      param: ${{ matrix.param }}
+
+  call-echo-two:
+    needs: hello
+    strategy:
+      matrix:
+        param: [ "alpha", "beta", "gamma" ]
+    uses: ./.github/workflows/echo-two.yml
+    with:
+      param: ${{ matrix.param }}
+
+

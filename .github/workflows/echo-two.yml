@@ -1,0 +1,21 @@
+name: Reusable Echo Two
+
+on:
+  workflow_call:
+    inputs:
+      param:
+        required: true
+        type: string
+
+jobs:
+  echo:
+    runs-on: ubuntu-22.04
+    strategy:
+      matrix:
+        flavor: [ "x", "y", "z" ]
+    steps:
+      - name: Echo from sub-workflow two
+        run: |
+          echo "echo-two: param=${{ inputs.param }}, flavor=${{ matrix.flavor }}"
+
+

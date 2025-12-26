@@ -1,0 +1,21 @@
+name: Reusable Echo One
+
+on:
+  workflow_call:
+    inputs:
+      param:
+        required: true
+        type: string
+
+jobs:
+  echo:
+    runs-on: ubuntu-22.04
+    strategy:
+      matrix:
+        variant: [ "A", "B" ]
+    steps:
+      - name: Echo from sub-workflow one
+        run: |
+          echo "echo-one: param=${{ inputs.param }}, variant=${{ matrix.variant }}"
+
+
