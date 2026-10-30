@@ -182,6 +182,7 @@ static unsigned long flags = 0;
 TEST_CASE test_case[] = {
     TEST_DECL(test_logging, &debug),
     TEST_DECL(test_ct_masks, NULL),
+    TEST_DECL(test_fetch_registered, NULL),
 #ifdef WP_HAVE_SHA1
     TEST_DECL(test_sha, NULL),
 #endif

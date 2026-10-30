@@ -231,22 +231,6 @@ const OSSL_DISPATCH name##_functions[] = {                                     \
     { 0,                                NULL                                }  \
 };
 
-#define IMPLEMENT_DIGEST_NULL(name)                                            \
-/** Dispatch table for digest_null algorithms. */                              \
-static int name##_digest_null(void) { return 0; }                              \
-static void name##_digest_void(void) {}                                        \
-const OSSL_DISPATCH name##_functions[] = {                                     \
-    { OSSL_FUNC_DIGEST_NEWCTX,          (DFUNC)name##_digest_null           }, \
-    { OSSL_FUNC_DIGEST_INIT,            (DFUNC)name##_digest_null           }, \
-    { OSSL_FUNC_DIGEST_UPDATE,          (DFUNC)name##_digest_null           }, \
-    { OSSL_FUNC_DIGEST_FINAL,           (DFUNC)name##_digest_null           }, \
-    { OSSL_FUNC_DIGEST_FREECTX,         (DFUNC)name##_digest_void           }, \
-    { OSSL_FUNC_DIGEST_DUPCTX,          (DFUNC)name##_digest_null           }, \
-    { OSSL_FUNC_DIGEST_GET_PARAMS,      (DFUNC)name##_digest_null           }, \
-    { OSSL_FUNC_DIGEST_GETTABLE_PARAMS, (DFUNC)name##_digest_null           }, \
-    { 0,                                NULL                                }  \
-};
-
 /**
  * Get parameters of a digest algorithm.
  *
@@ -320,15 +304,13 @@ static const OSSL_PARAM* wp_digest_gettable_params(void* provCtx)
  ******************************************************************************/
 
 #ifdef WP_HAVE_MD5
-#if defined(HAVE_FIPS) && !defined(WP_ALLOW_NON_FIPS)
-IMPLEMENT_DIGEST_NULL(wp_md5)
-#else
+#if !defined(HAVE_FIPS) || defined(WP_ALLOW_NON_FIPS)
 IMPLEMENT_DIGEST(wp_md5, wc_Md5,
                  WC_MD5_BLOCK_SIZE, WC_MD5_DIGEST_SIZE,
                  0,
                  wc_InitMd5_ex, wc_Md5Update, wc_Md5Final,
                  wc_Md5Copy, wc_Md5Free)
-#endif
+#endif /* !HAVE_FIPS || WP_ALLOW_NON_FIPS */
 #endif
 
 /*******************************************************************************
@@ -472,9 +454,7 @@ IMPLEMENT_DIGEST(wp_md5_sha1, wp_Md5Sha,
                  0,
                  wp_InitMd5Sha_ex, wp_Md5ShaUpdate, wp_Md5ShaFinal,
                  wp_Md5ShaCopy, wp_Md5ShaFree)
-#else   /* defined(HAVE_FIPS) && !defined(WP_ALLOW_NON_FIPS) */
-IMPLEMENT_DIGEST_NULL(wp_md5_sha1)
-#endif
+#endif /* !HAVE_FIPS || WP_ALLOW_NON_FIPS */
 #endif
 
 /*******************************************************************************

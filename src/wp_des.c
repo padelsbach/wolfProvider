@@ -914,32 +914,5 @@ IMPLEMENT_DES3_BLOCK_DISPATCH(lcmode, kBits, ivBits)
 /** wp_des3cbc_functions_functions */
 IMPLEMENT_DES3_BLOCK(cbc, CBC, 192, 64)
 
-#else /* defined(HAVE_FIPS) && !defined(WP_ALLOW_NON_FIPS */
-
-#define IMPLEMENT_DES3_BLOCK_NULL(mode)                                        \
-const OSSL_DISPATCH wp_des3##mode##_functions[] = {                            \
-    { OSSL_FUNC_CIPHER_NEWCTX,          (DFUNC)wp_des3_null                 }, \
-    { OSSL_FUNC_CIPHER_FREECTX,         (DFUNC)wp_des3_void                 }, \
-    { OSSL_FUNC_CIPHER_DUPCTX,          (DFUNC)wp_des3_null                 }, \
-    { OSSL_FUNC_CIPHER_ENCRYPT_INIT,    (DFUNC)wp_des3_null                 }, \
-    { OSSL_FUNC_CIPHER_DECRYPT_INIT,    (DFUNC)wp_des3_null                 }, \
-    { OSSL_FUNC_CIPHER_UPDATE,          (DFUNC)wp_des3_null                 }, \
-    { OSSL_FUNC_CIPHER_FINAL,           (DFUNC)wp_des3_null                 }, \
-    { OSSL_FUNC_CIPHER_CIPHER,          (DFUNC)wp_des3_null                 }, \
-    { OSSL_FUNC_CIPHER_GET_PARAMS,      (DFUNC)wp_des3_null                 }, \
-    { OSSL_FUNC_CIPHER_GET_CTX_PARAMS,  (DFUNC)wp_des3_null                 }, \
-    { OSSL_FUNC_CIPHER_SET_CTX_PARAMS,  (DFUNC)wp_des3_null                 }, \
-    { OSSL_FUNC_CIPHER_GETTABLE_PARAMS, (DFUNC)wp_des3_null                 }, \
-    { OSSL_FUNC_CIPHER_GETTABLE_CTX_PARAMS,                                    \
-                              (DFUNC)wp_des3_null                           }, \
-    { OSSL_FUNC_CIPHER_SETTABLE_CTX_PARAMS,                                    \
-                              (DFUNC)wp_des3_null                           }, \
-    { 0, NULL }                                                                \
-};
-static int wp_des3_null(void) { return 0; }
-static void wp_des3_void(void) {}
-
-IMPLEMENT_DES3_BLOCK_NULL(cbc)
-
-#endif
+#endif /* !HAVE_FIPS || WP_ALLOW_NON_FIPS */
 #endif /* WP_HAVE_DES3CBC */

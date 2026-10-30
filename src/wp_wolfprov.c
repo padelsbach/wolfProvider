@@ -404,16 +404,18 @@ static int wolfprov_get_params(void* provCtx, OSSL_PARAM params[])
 
 /* List of digest algorithm implementations available in wolfSSL provider. */
 static const OSSL_ALGORITHM wolfprov_digests[] = {
-#ifdef WP_HAVE_MD5
+#if defined(WP_HAVE_MD5) && \
+    (!defined(HAVE_FIPS) || defined(WP_ALLOW_NON_FIPS))
     /* MD5 */
     { WP_NAMES_MD5, WOLFPROV_PROPERTIES, wp_md5_functions,
       "" },
-#endif
-#ifdef WP_HAVE_MD5_SHA1
+#endif /* WP_HAVE_MD5 && (!HAVE_FIPS || WP_ALLOW_NON_FIPS) */
+#if defined(WP_HAVE_MD5_SHA1) && \
+    (!defined(HAVE_FIPS) || defined(WP_ALLOW_NON_FIPS))
     /* MD5-SHA1 */
     { WP_NAMES_MD5_SHA1, WOLFPROV_PROPERTIES, wp_md5_sha1_functions,
       "" },
-#endif
+#endif /* WP_HAVE_MD5_SHA1 && (!HAVE_FIPS || WP_ALLOW_NON_FIPS) */
 #ifdef WP_HAVE_SHA1
     /* SHA-1 */
     { WP_NAMES_SHA1, WOLFPROV_PROPERTIES, wp_sha1_functions,
@@ -551,10 +553,11 @@ static const OSSL_ALGORITHM wolfprov_ciphers[] = {
       "" },
 #endif
 
-#ifdef WP_HAVE_DES3CBC
+#if defined(WP_HAVE_DES3CBC) && \
+    (!defined(HAVE_FIPS) || defined(WP_ALLOW_NON_FIPS))
     { WP_NAMES_DES_EDE3_CBC, WOLFPROV_PROPERTIES, wp_des3cbc_functions,
      "" },
-#endif
+#endif /* WP_HAVE_DES3CBC && (!HAVE_FIPS || WP_ALLOW_NON_FIPS) */
 
     { NULL, NULL, NULL, NULL }
 };
